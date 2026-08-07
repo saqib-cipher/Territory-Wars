@@ -1,0 +1,74 @@
+[
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_item_shop.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/item_shop.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_home.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_home.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_settings.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_settings.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_game.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_game.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.territorywars.app-main-69:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.territorywars.app-main-69:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_item_recent_match.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/item_recent_match.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_activity_main.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_activity_lobby.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/activity_lobby.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_activity_game.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/activity_game.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/xml_data_extraction_rules.xml.flat",
+        "source": "com.territorywars.app-main-69:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_inventory.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_inventory.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_shop.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_shop.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.territorywars.app-main-69:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/xml_backup_rules.xml.flat",
+        "source": "com.territorywars.app-main-69:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_activity_auth.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/activity_auth.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_leaderboard.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_leaderboard.xml"
+    },
+    {
+        "merged": "com.territorywars.app-debug-67:/layout_fragment_play.xml.flat",
+        "source": "com.territorywars.app-main-69:/layout/fragment_play.xml"
+    }
+]

@@ -1,0 +1,12 @@
+Index: .gradle/config.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.gradle/config.properties b/.gradle/config.properties
+new file mode 100644
+--- /dev/null	(date 1786105487727)
++++ b/.gradle/config.properties	(date 1786105487727)
+@@ -0,0 +1,2 @@
++#Fri Aug 07 16:37:11 IST 2026
++java.home=C\:\\Users\\sddrk\\.jdks\\jbr-17.0.14

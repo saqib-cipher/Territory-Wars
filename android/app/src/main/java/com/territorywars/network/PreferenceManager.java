@@ -1,0 +1,81 @@
+package com.territorywars.network;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+public class PreferenceManager {
+    private static final String PREF_NAME = "territory_wars_prefs";
+    private static final String KEY_TOKEN = "auth_token";
+    private static final String KEY_USER_ID = "user_id";
+    private static final String KEY_USERNAME = "username";
+    private static final String KEY_IS_GUEST = "is_guest";
+    private static final String KEY_THEME = "theme_mode";
+    private static final String KEY_ADS_REMOVED = "ads_removed";
+    private static final String KEY_PREMIUM = "premium_active";
+    private static final String KEY_MATCHES = "matches_played";
+
+    private final SharedPreferences prefs;
+
+    public PreferenceManager(Context context) {
+        this.prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+
+    public void saveSession(String token, String userId, String username, boolean isGuest) {
+        prefs.edit()
+                .putString(KEY_TOKEN, token)
+                .putString(KEY_USER_ID, userId)
+                .putString(KEY_USERNAME, username)
+                .putBoolean(KEY_IS_GUEST, isGuest)
+                .apply();
+    }
+
+    public void saveToken(String token) {
+        prefs.edit().putString(KEY_TOKEN, token).apply();
+    }
+
+    public String getToken() {
+        return prefs.getString(KEY_TOKEN, null);
+    }
+
+    public boolean isLoggedIn() {
+        return getToken() != null && !getToken().isEmpty();
+    }
+
+    public void saveUserId(String userId) {
+        prefs.edit().putString(KEY_USER_ID, userId).apply();
+    }
+
+    public String getUserId() {
+        return prefs.getString(KEY_USER_ID, null);
+    }
+
+    public int getThemeMode() {
+        return prefs.getInt(KEY_THEME, 0);
+    }
+
+    public void setThemeMode(int mode) {
+        prefs.edit().putInt(KEY_THEME, mode).apply();
+    }
+
+    public boolean isAdsRemoved() {
+        return prefs.getBoolean(KEY_ADS_REMOVED, false);
+    }
+
+    public void setAdsRemoved(boolean removed) {
+        prefs.edit().putBoolean(KEY_ADS_REMOVED, removed).apply();
+    }
+
+    public boolean isPremiumActive() {
+        return prefs.getBoolean(KEY_PREMIUM, false);
+    }
+
+    public void setPremiumActive(boolean active) {
+        prefs.edit().putBoolean(KEY_PREMIUM, active).apply();
+    }
+
+    public int incrementMatchesPlayed() {
+        int val = prefs.getInt(KEY_MATCHES, 0) + 1;
+        prefs.edit().putInt(KEY_MATCHES, val).apply();
+        return val;
+    }
+}

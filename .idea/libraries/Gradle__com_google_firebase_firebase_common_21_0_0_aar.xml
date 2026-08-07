@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.google.firebase:firebase-common:21.0.0@aar" external-system-id="GRADLE">
+    <CLASSES>
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/81d0ba2e6eab9ab95a3cfceb4c6ee315/transformed/firebase-common-21.0.0/AndroidManifest.xml" />
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/81d0ba2e6eab9ab95a3cfceb4c6ee315/transformed/firebase-common-21.0.0/res" />
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/81d0ba2e6eab9ab95a3cfceb4c6ee315/transformed/firebase-common-21.0.0/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/modules-2/files-2.1/com.google.firebase/firebase-common/21.0.0/c727140732618b82e5c1ce53ce1464d5d31a5118/firebase-common-21.0.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

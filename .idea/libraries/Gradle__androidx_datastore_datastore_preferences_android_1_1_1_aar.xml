@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: androidx.datastore:datastore-preferences-android:1.1.1@aar" external-system-id="GRADLE">
+    <CLASSES>
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/34f3467b7ef9318dee5922b06f19476e/transformed/datastore-preferences-release/AndroidManifest.xml" />
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/34f3467b7ef9318dee5922b06f19476e/transformed/datastore-preferences-release/res" />
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/34f3467b7ef9318dee5922b06f19476e/transformed/datastore-preferences-release/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/modules-2/files-2.1/androidx.datastore/datastore-preferences-android/1.1.1/e9aaf8b9d55f6d7e905cf89d502fe80ec60b01b5/datastore-preferences-android-1.1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

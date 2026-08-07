@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.android.billingclient:billing:7.0.0@aar" external-system-id="GRADLE">
+    <CLASSES>
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/9e7a7cb45e0ec3e71c3c6dfab2c9b416/transformed/billing-7.0.0/AndroidManifest.xml" />
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/9e7a7cb45e0ec3e71c3c6dfab2c9b416/transformed/billing-7.0.0/res" />
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/9e7a7cb45e0ec3e71c3c6dfab2c9b416/transformed/billing-7.0.0/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/modules-2/files-2.1/com.android.billingclient/billing/7.0.0/2b22245a200ce05d40375b0dd06c1fbc35ab127f/billing-7.0.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>

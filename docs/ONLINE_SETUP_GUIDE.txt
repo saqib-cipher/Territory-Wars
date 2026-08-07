@@ -1,0 +1,114 @@
+================================================================================
+TERRITORY WARS - ONLINE SERVER SETUP & CLIENT CONFIGURATION GUIDE
+================================================================================
+
+1. RECOMMENDED DEPLOYMENT PLATFORMS
+--------------------------------------------------------------------------------
+Backend Server (Node.js + Socket.IO):
+  - Render.com (Recommended Free/Easy): Native Node.js & Socket.IO support, automatic HTTPS/WSS SSL.
+  - Railway.app: Great performance, managed Postgres/Redis addons, continuous deployment.
+  - VPS (Ubuntu 22.04 / 24.04 on DigitalOcean, AWS EC2, Linode, Vultr): Maximum speed & control with PM2 and Nginx.
+
+Database & Cache:
+  - PostgreSQL: Render Postgres, Railway Postgres, Supabase, or Neon.tech.
+  - Redis: Upstash Redis, Render Redis, or Railway Redis.
+
+
+2. SERVER ENVIRONMENT VARIABLES (server/.env)
+--------------------------------------------------------------------------------
+Copy server/.env.example to server/.env and configure:
+
+  NODE_ENV=production
+  PORT=8080
+  BASE_URL=https://your-backend-domain.com
+  DATABASE_URL=postgres://username:password@host:5432/territory_wars?sslmode=require
+  REDIS_URL=redis://default:password@redis-host:6379
+  JWT_SECRET=YOUR_64_CHAR_SECRET_KEY
+  JWT_EXPIRES_IN=30d
+  GOOGLE_WEB_CLIENT_ID=YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com
+  GOOGLE_SERVICE_ACCOUNT_FILE=./service_account.json
+  GOOGLE_PLAY_PACKAGE_NAME=com.territorywars
+  ADMOB_APP_ID=ca-app-pub-3940256099942544~3347511713
+  RATE_LIMIT_WINDOW_MS=60000
+  RATE_LIMIT_MAX=120
+
+To generate a random JWT_SECRET, run:
+  openssl rand -hex 32
+
+
+3. DEPLOYING BACKEND TO RENDER.COM (RECOMMENDED FREE STEP-BY-STEP)
+--------------------------------------------------------------------------------
+1. Push your Territory Wars project repository to GitHub.
+2. Go to https://dashboard.render.com -> New -> PostgreSQL -> Copy internal Database URL.
+3. Click New -> Redis -> Copy internal Redis URL.
+4. Click New -> Web Service -> Connect your GitHub repo.
+   - Root Directory: server
+   - Environment: Node
+   - Build Command: npm install
+   - Start Command: npm start
+5. Add Environment Variables in Render Web Service Environment tab:
+   - NODE_ENV: production
+   - DATABASE_URL: (Render PostgreSQL URL)
+   - REDIS_URL: (Render Redis URL)
+   - JWT_SECRET: (Generated secret string)
+   - GOOGLE_WEB_CLIENT_ID: (Google OAuth Web Client ID)
+6. Copy your live server HTTPS URL (e.g., https://territory-wars-api.onrender.com).
+
+
+4. ANDROID CLIENT CONFIGURATION (WHERE TO CHANGE URLS, KEYS & IDS)
+--------------------------------------------------------------------------------
+
+[A] SERVER API & WEBSOCKET URLS
+----------------------------------------
+Edit android/gradle.properties (or root gradle.properties):
+
+  tw.apiBaseUrlDebug=http://10.0.2.2:8080/v1
+  tw.socketUrlDebug=http://10.0.2.2:8080
+  tw.apiBaseUrlRelease=https://your-live-domain.com/v1
+  tw.socketUrlRelease=https://your-live-domain.com
+
+Or edit android/app/build.gradle lines 19-36 directly.
+
+
+[B] GOOGLE SIGN-IN & FIREBASE AUTHENTICATION
+----------------------------------------
+1. Go to Firebase Console (https://console.firebase.google.com).
+2. Add an Android app with package name: com.territorywars
+3. Download google-services.json -> Save to android/app/google-services.json
+4. Copy Web Client ID from Firebase Authentication Google Sign-In settings.
+5. Open android/app/src/main/res/values/strings.xml line 44 and set:
+   <string name="default_web_client_id" translatable="false">YOUR_CLIENT_ID.apps.googleusercontent.com</string>
+
+
+[C] ADMOB ADS CONFIGURATION
+----------------------------------------
+1. Go to Google AdMob Console (https://admob.google.com).
+2. Get your AdMob App ID and set it in android/app/src/main/AndroidManifest.xml:
+   <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-YOUR_ADMOB_APP_ID~XXXXXXXXXX"/>
+3. Update Ad Unit IDs in android/app/src/main/java/com/territorywars/ads/AdManager.java:
+   - BANNER_AD_UNIT_ID
+   - INTERSTITIAL_AD_UNIT_ID
+   - REWARDED_AD_UNIT_ID
+
+
+[D] GOOGLE PLAY BILLING & IN-APP PURCHASES
+----------------------------------------
+1. Go to Google Play Console (https://play.google.com/console).
+2. Configure In-App Items matching Product IDs in BillingManager.java:
+   - tw_coins_100
+   - tw_gems_10
+   - tw_premium_monthly
+   - tw_premium_yearly
+3. Upload Google Play Service Account JSON key to server/service_account.json.
+
+
+5. TESTING & VERIFICATION
+--------------------------------------------------------------------------------
+1. Test server status via Terminal / Command Prompt:
+     curl https://your-live-domain.com/v1/profile
+   (Returns 401 Unauthorized, confirming the live API server is active and enforcing JWT security).
+
+2. Build Android Release APK:
+     cd android
+     ./gradlew assembleRelease
+================================================================================

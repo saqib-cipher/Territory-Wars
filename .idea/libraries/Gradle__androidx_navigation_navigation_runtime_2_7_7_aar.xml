@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: androidx.navigation:navigation-runtime:2.7.7@aar" external-system-id="GRADLE">
+    <CLASSES>
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/c3d292bcaf818cc17841d5e011def36b/transformed/navigation-runtime-2.7.7/AndroidManifest.xml" />
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/c3d292bcaf818cc17841d5e011def36b/transformed/navigation-runtime-2.7.7/res" />
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/c3d292bcaf818cc17841d5e011def36b/transformed/navigation-runtime-2.7.7/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/modules-2/files-2.1/androidx.navigation/navigation-runtime/2.7.7/bea7a2905c59820fb8b79cff05dec4daa304db93/navigation-runtime-2.7.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

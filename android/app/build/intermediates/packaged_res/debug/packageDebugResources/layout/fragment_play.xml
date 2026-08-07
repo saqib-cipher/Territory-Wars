@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <com.territorywars.ModernFButton
+        android:id="@+id/quickMatchButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Quick Match" />
+
+    <com.territorywars.ModernFButton
+        android:id="@+id/rankedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Ranked Match" />
+
+    <com.territorywars.ModernFButton
+        android:id="@+id/createRoomButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Create Room" />
+
+    <com.territorywars.ModernFButton
+        android:id="@+id/joinRoomButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Join Room" />
+
+    <com.territorywars.ModernFButton
+        android:id="@+id/offlineButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Offline Practice" />
+</LinearLayout>

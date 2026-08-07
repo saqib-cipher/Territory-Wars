@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Territory Wars</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_play">Play</string>
+    <string name="nav_friends">Friends</string>
+    <string name="nav_leaderboard">Leaderboard</string>
+    <string name="nav_inventory">Inventory</string>
+    <string name="nav_shop">Shop</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home -->
+    <string name="home_daily_reward">Daily Reward</string>
+    <string name="home_quick_play">Quick Play</string>
+    <string name="home_recent_matches">Recent matches</string>
+    <string name="home_claim">Claim</string>
+
+    <!-- Play -->
+    <string name="play_quick_match">Quick Match</string>
+    <string name="play_ranked">Ranked</string>
+    <string name="play_create_room">Create Room</string>
+    <string name="play_join_room">Join Room</string>
+    <string name="play_offline">Offline Practice</string>
+
+    <!-- Lobby -->
+    <string name="lobby_room_code">Room Code</string>
+    <string name="lobby_ready">Ready</string>
+    <string name="lobby_invite">Invite Friends</string>
+    <string name="lobby_start">Start</string>
+
+    <!-- Game -->
+    <string name="game_pause">Pause</string>
+    <string name="game_resume">Resume</string>
+    <string name="game_quit">Quit</string>
+    <string name="game_victory">Victory!</string>
+    <string name="game_defeat">Defeat</string>
+
+    <!-- Auth -->
+    <string name="auth_login_guest">Play as Guest</string>
+    <string name="auth_login_google">Continue with Google</string>
+    <string name="default_web_client_id" translatable="false">YOUR_GOOGLE_WEB_CLIENT_ID</string>
+
+    <!-- Common -->
+    <string name="common_close">Close</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_loading">Loading…</string>
+    <string name="common_error">Something went wrong</string>
+    <string name="common_retry">Retry</string>
+</resources>

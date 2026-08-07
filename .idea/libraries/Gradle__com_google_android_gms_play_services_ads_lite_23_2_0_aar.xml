@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.google.android.gms:play-services-ads-lite:23.2.0@aar" external-system-id="GRADLE">
+    <CLASSES>
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/f40fddfbf544eb02706e0b6e15c65390/transformed/play-services-ads-lite-23.2.0/AndroidManifest.xml" />
+      <root url="file://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/f40fddfbf544eb02706e0b6e15c65390/transformed/play-services-ads-lite-23.2.0/res" />
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/8.12/transforms/f40fddfbf544eb02706e0b6e15c65390/transformed/play-services-ads-lite-23.2.0/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/AndroidStudioProjects/SketchX/source code/caches/modules-2/files-2.1/com.google.android.gms/play-services-ads-lite/23.2.0/2a4b83d829c4944cec1f02c1d851e77322fbf32c/play-services-ads-lite-23.2.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>
