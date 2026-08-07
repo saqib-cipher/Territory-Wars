@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Graphics quality presets -->
+    <string-array name="settings_graphics_options">
+        <item>Low</item>
+        <item>Medium</item>
+        <item>High</item>
+        <item>Ultra</item>
+    </string-array>
+
+    <!-- FPS caps -->
+    <string-array name="settings_fps_options">
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+    </string-array>
+
+    <!-- Languages -->
+    <string-array name="settings_language_options">
+        <item>English</item>
+        <item>Español</item>
+        <item>Deutsch</item>
+        <item>Français</item>
+        <item>العربية</item>
+    </string-array>
+
+    <!-- Themes -->
+    <string-array name="settings_theme_options">
+        <item>System</item>
+        <item>Light</item>
+        <item>Dark</item>
+        <item>Dynamic</item>
+    </string-array>
+</resources>

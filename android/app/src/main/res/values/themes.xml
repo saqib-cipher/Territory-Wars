@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Default theme resolved from the theme.xml (M3 component attributes map these names). -->
+    <style name="Theme.TerritoryWars" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Dynamic color is applied at runtime via ThemeUtils.enableDynamicColor().
+             These attributes are the static basalt fallback palette. -->
+        <item name="colorPrimary">@color/territory_primary</item>
+        <item name="colorOnPrimary">@color/territory_on_primary</item>
+        <item name="colorPrimaryContainer">@color/territory_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/territory_on_primary_container</item>
+
+        <item name="colorSecondary">@color/territory_secondary</item>
+        <item name="colorOnSecondary">@color/territory_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/territory_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/territory_on_secondary_container</item>
+
+        <item name="colorTertiary">@color/territory_tertiary</item>
+        <item name="colorOnTertiary">@color/territory_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/territory_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/territory_on_tertiary_container</item>
+
+        <item name="colorError">@color/territory_error</item>
+        <item name="android:colorBackground">@color/territory_surface_dark</item>
+
+        <!-- Large top app bar style -->
+        <item name="toolbarStyle">@style/Widget.TerritoryWars.TopAppBar</item>
+    </style>
+
+    <!-- Top app bar - large expressive header -->
+    <style name="Widget.TerritoryWars.TopAppBar" parent="Widget.Material3.TopAppBar.Large">
+        <item name="titleTextAppearance">@style/TextAppearance.TerritoryWars.HeadlineSmall</item>
+    </style>
+
+    <!-- Expressive type ramp -->
+    <style name="TextAppearance.TerritoryWars.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall" />
+    <style name="TextAppearance.TerritoryWars.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium" />
+    <style name="TextAppearance.TerritoryWars.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall" />
+    <style name="TextAppearance.TerritoryWars.TitleLarge" parent="TextAppearance.Material3.TitleLarge" />
+    <style name="TextAppearance.TerritoryWars.TitleMedium" parent="TextAppearance.Material3.TitleMedium" />
+    <style name="TextAppearance.TerritoryWars.BodyLarge" parent="TextAppearance.Material3.BodyLarge" />
+    <style name="TextAppearance.TerritoryWars.BodyMedium" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="TextAppearance.TerritoryWars.LabelLarge" parent="TextAppearance.Material3.LabelLarge" />
+
+    <!-- Expressive cards -->
+    <style name="Widget.TerritoryWars.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/territory_outline_variant_dark</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <!-- Filled + tonal bottombar-item active style kept default for clarity -->
+
+    <!-- Splash theme: system splash + blank background -->
+    <style name="Theme.TerritoryWars.Splash" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/seed</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenAnimationDuration">200</item>
+        <item name="android:windowBackground">@color/seed</item>
+    </style>
+
+    <!-- Full-round shape overlay used by avatars -->
+    <style name="ShapeAppearance.TerritoryWars.Avatar" parent="ShapeAppearance.Material3.Corner.Full" />
+</resources>

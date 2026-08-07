@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Basalt seed palette for Territory Wars.
+    These act as the fallback palette when dynamic color is unavailable.
+-->
+<resources>
+    <color name="seed">#5B10B7</color>
+
+    <color name="territory_primary">#AC72FF</color>
+    <color name="territory_on_primary">#3E009D</color>
+    <color name="territory_primary_container">#6B10D0</color>
+    <color name="territory_on_primary_container">#F4DEFF</color>
+
+    <color name="territory_secondary">#C9BFDB</color>
+    <color name="territory_on_secondary">#302A40</color>
+    <color name="territory_secondary_container">#474157</color>
+    <color name="territory_on_secondary_container">#E5DAF6</color>
+
+    <color name="territory_tertiary">#F1B6C5</color>
+    <color name="territory_on_tertiary">#481F2A</color>
+    <color name="territory_tertiary_container">#643542</color>
+    <color name="territory_on_tertiary_container">#FFD9E0</color>
+
+    <color name="territory_error">#F2B8B5</color>
+    <color name="territory_on_error">#601410</color>
+
+    <color name="territory_surface_dark">#141318</color>
+    <color name="territory_on_surface_dark">#E6E0E9</color>
+    <color name="territory_surface_bright_dark">#3A3850</color>
+    <color name="territory_outline_dark">#8F909B</color>
+    <color name="territory_outline_variant_dark">#46464F</color>
+
+    <color name="territory_surface_light">#FDF8FF</color>
+    <color name="territory_on_surface_light">#1C1B1F</color>
+    <color name="territory_surface_bright_light">#FDF8FF</color>
+    <color name="territory_outline_light">#7B7480</color>
+    <color name="territory_outline_variant_light">#CAC4D0</color>
+
+    <!-- Game specific -->
+    <color name="game_neutral_tile">#37474F</color>
+    <color name="game_player_blue">#448AFF</color>
+    <color name="game_enemy_red">#FF5252</color>
+    <color name="game_team_a">#00C853</color>
+    <color name="game_team_b">#FF6D00</color>
+    <color name="game_powerup">#FFD600</color>
+</resources>
