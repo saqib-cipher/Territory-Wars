@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark variant tweaks. Most colors come from the dark basalt palette defined in colors.xml. -->
+    <style name="Theme.TerritoryWars" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/territory_primary</item>
+        <item name="colorOnPrimary">@color/territory_on_primary</item>
+        <item name="colorPrimaryContainer">@color/territory_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/territory_on_primary_container</item>
+        <item name="colorSecondary">@color/territory_secondary</item>
+        <item name="colorOnSecondary">@color/territory_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/territory_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/territory_on_secondary_container</item>
+        <item name="colorTertiary">@color/territory_tertiary</item>
+        <item name="colorOnTertiary">@color/territory_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/territory_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/territory_on_tertiary_container</item>
+        <item name="colorError">@color/territory_error</item>
+        <item name="android:colorBackground">@color/territory_surface_dark</item>
+    </style>
+
+    <style name="Widget.TerritoryWars.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/territory_outline_variant_dark</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+</resources>

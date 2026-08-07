@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/space_24">
+
+    <TextView
+        android:id="@+id/rewardTitle"
+        style="@style/TextAppearance.TerritoryWars.HeadlineSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/home_daily_reward"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/rewardAmount"
+        style="@style/TextAppearance.TerritoryWars.DisplaySmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_8"
+        app:layout_constraintTop_toBottomOf="@id/rewardTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="+500" />
+
+    <Button
+        android:id="@+id/claimConfirmButton"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_16"
+        app:layout_constraintTop_toBottomOf="@id/rewardClaim"
+        android:text="@string/home_claim" />
+
+    <Button
+        android:id="@+id/doubleRewardAdButton"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/claimConfirmButton"
+        android:text="Watch Ad · Double" />
+</androidx.constraintlayout.widget.ConstraintLayout>
