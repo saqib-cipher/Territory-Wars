@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/space_16">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            style="@style/TextAppearance.TerritoryWars.HeadlineMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/nav_play" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/quickMatchButton"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="@dimen/space_24"
+            android:text="@string/play_quick_match" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/rankedButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/play_ranked" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/createRoomButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/play_create_room" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/joinRoomButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/play_join_room" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/offlineButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/play_offline" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

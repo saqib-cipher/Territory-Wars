@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.territorywars.fragments.HomeFragment"
+        android:label="@string/nav_home" />
+
+    <fragment
+        android:id="@+id/playFragment"
+        android:name="com.territorywars.fragments.PlayFragment"
+        android:label="@string/nav_play" />
+
+    <fragment
+        android:id="@+id/friendsFragment"
+        android:name="com.territorywars.fragments.FriendsFragment"
+        android:label="@string/nav_friends" />
+
+    <fragment
+        android:id="@+id/leaderboardFragment"
+        android:name="com.territorywars.fragments.LeaderboardFragment"
+        android:label="@string/nav_leaderboard" />
+
+    <fragment
+        android:id="@+id/inventoryFragment"
+        android:name="com.territorywars.fragments.InventoryFragment"
+        android:label="@string/nav_inventory" />
+
+    <fragment
+        android:id="@+id/shopFragment"
+        android:name="com.territorywars.fragments.ShopFragment"
+        android:label="@string/nav_shop" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.territorywars.fragments.ProfileFragment"
+        android:label="@string/nav_profile" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.territorywars.fragments.SettingsFragment"
+        android:label="@string/nav_settings" />
+</navigation>

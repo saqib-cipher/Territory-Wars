@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylised territory flag tile on the launcher foreground. -->
+    <group
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:pivotX="54"
+        android:pivotY="54"
+        android:translateX="27"
+        android:translateY="27">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M48,16 L80,16 L80,48 L48,48 Z" />
+        <path
+            android:fillColor="#FFAC72FF"
+            android:pathData="M48,16 L54,16 L54,48 L48,48 Z" />
+        <path
+            android:fillColor="#FF8851FC"
+            android:pathData="M80,16 L80,24 L48,24 L48,16 Z" />
+        <path
+            android:fillColor="#FF6B10D0"
+            android:pathData="M28,36 L82,36 L82,42 L28,42 Z" />
+    </group>
+</vector>

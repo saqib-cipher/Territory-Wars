@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Game mode names -->
+    <string-array name="game_mode_names" translatable="false">
+        <item>CLASSIC</item>
+        <item>RANKED</item>
+        <item>TEAM_BATTLE</item>
+        <item>PRIVATE_ROOM</item>
+        <item>OFFLINE</item>
+    </string-array>
+</resources>
