@@ -28,3 +28,22 @@ if (!appDir.exists()) {
     appDir = new File(settingsDir, 'android/app')
 }
 project(':app').projectDir = appDir
+
+// Auto-sanitize local.properties for Docker / Linux / CI environments
+File localProps = new File(rootDir, "local.properties")
+if (localProps.exists()) {
+    try {
+        Properties props = new Properties()
+        localProps.withInputStream { props.load(it) }
+        String sdkDir = props.getProperty("sdk.dir")
+        if (sdkDir != null && !new File(sdkDir).exists()) {
+            String envSdk = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+            if (envSdk != null && new File(envSdk).exists()) {
+                props.setProperty("sdk.dir", envSdk)
+                localProps.withOutputStream { props.store(it, "Auto-updated for build environment") }
+            } else {
+                localProps.delete()
+            }
+        }
+    } catch (Exception ignored) {}
+}
