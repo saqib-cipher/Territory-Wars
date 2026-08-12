@@ -28,6 +28,12 @@ public class PlayerAvatarView extends LinearLayout {
 
     private boolean isTurn = false;
     private boolean isMuted = false;
+    private android.graphics.Bitmap avatarBitmap;
+
+    public void setAvatarBitmap(android.graphics.Bitmap bitmap) {
+        this.avatarBitmap = bitmap;
+        if (avatarCircle != null) avatarCircle.invalidate();
+    }
 
     public PlayerAvatarView(Context context) {
         super(context);
@@ -69,17 +75,21 @@ public class PlayerAvatarView extends LinearLayout {
                 borderPaint.setColor(isTurn ? Color.parseColor("#F59E0B") : Color.parseColor("#64748B"));
                 canvas.drawOval(bounds, borderPaint);
 
-                // Avatar letter placeholder
-                textPaint.setColor(Color.WHITE);
-                textPaint.setTextSize(size * 0.42f);
-                textPaint.setTextAlign(Paint.Align.CENTER);
-                textPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                if (avatarBitmap != null) {
+                    canvas.drawBitmap(avatarBitmap, null, bounds, null);
+                } else {
+                    // Avatar letter placeholder
+                    textPaint.setColor(Color.WHITE);
+                    textPaint.setTextSize(size * 0.42f);
+                    textPaint.setTextAlign(Paint.Align.CENTER);
+                    textPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
 
-                String initial = (nameText.getText() != null && nameText.getText().length() > 0)
-                        ? String.valueOf(nameText.getText().charAt(0)).toUpperCase()
-                        : "P";
-                float yPos = (getHeight() / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f);
-                canvas.drawText(initial, getWidth() / 2f, yPos, textPaint);
+                    String initial = (nameText.getText() != null && nameText.getText().length() > 0)
+                            ? String.valueOf(nameText.getText().charAt(0)).toUpperCase()
+                            : "P";
+                    float yPos = (getHeight() / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f);
+                    canvas.drawText(initial, getWidth() / 2f, yPos, textPaint);
+                }
             }
         };
 

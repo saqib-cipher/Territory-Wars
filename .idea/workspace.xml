@@ -81,33 +81,27 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="initial">
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_cancel.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_circle.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_edit.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_minus.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_plus.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_question.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_search.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/user_star.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/users.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/users_plus.xml" afterDir="false" />
+    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="added xsomething">
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/assets/avatars.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/assets/sounds/card_flip.mp3" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/audio/GameAudio.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/audio/GameAudio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/PlayFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/PlayFragment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/network/PreferenceManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/network/PreferenceManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/GameCardView.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/GameCardView.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/PlayerAvatarView.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/PlayerAvatarView.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable/gradient_hero.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/gradient_hero.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_game.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_game.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/TimerView.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/views/TimerView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_play.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_play.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -245,6 +239,9 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets\sounds" />
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets" />
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\java\com\territorywars" />
     </key>
@@ -429,7 +426,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786535783259</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="added xsomething">
+      <option name="closed" value="true" />
+      <created>1786549452822</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1786549452822</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -447,7 +452,8 @@
     <MESSAGE value="cscsczsc" />
     <MESSAGE value="Initial commit" />
     <MESSAGE value="initial" />
-    <option name="LAST_COMMIT_MESSAGE" value="initial" />
+    <MESSAGE value="added xsomething" />
+    <option name="LAST_COMMIT_MESSAGE" value="added xsomething" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="play_dynamic_filters_status">

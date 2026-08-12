@@ -21,6 +21,10 @@ public class WinnerActivity extends BaseActivity {
         String winnerName = getIntent().getStringExtra("winnerName");
         int finalScore = getIntent().getIntExtra("finalScore", 0);
 
+        try {
+            container().getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.VICTORY);
+        } catch (Exception ignored) {}
+
         TextView tvWinnerName = findViewById(R.id.tvWinnerName);
         TextView tvFinalScore = findViewById(R.id.tvFinalScore);
 

@@ -73,8 +73,16 @@ public class TimerView extends View {
             progressPaint.setColor(Color.parseColor("#EF4444")); // Crimson red
         }
 
-        // Pulse warning at 15s and 5s
-        if (this.remainingSeconds == 15 || this.remainingSeconds == 5) {
+        // Pulse warning and trigger audio at 10s and 3s
+        if (this.remainingSeconds == 10) {
+            try {
+                glab.guesscard.GuessCardApp.from(getContext()).getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.TIMER_TICK);
+            } catch (Exception ignored) {}
+            triggerWarningPulse();
+        } else if (this.remainingSeconds == 3) {
+            try {
+                glab.guesscard.GuessCardApp.from(getContext()).getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.TIMER_WARNING);
+            } catch (Exception ignored) {}
             triggerWarningPulse();
         }
 

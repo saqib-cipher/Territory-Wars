@@ -54,6 +54,29 @@ public class PreferenceManager {
         return prefs.getString(KEY_USERNAME, "Player");
     }
 
+    public void saveUsername(String username) {
+        prefs.edit().putString(KEY_USERNAME, username).apply();
+    }
+
+    private static final String KEY_AVATAR_INDEX = "avatar_index";
+    private static final String KEY_AVATAR_FILE = "avatar_file_name";
+
+    public int getAvatarIndex() {
+        return prefs.getInt(KEY_AVATAR_INDEX, 0);
+    }
+
+    public void saveAvatarIndex(int index) {
+        prefs.edit().putInt(KEY_AVATAR_INDEX, index).apply();
+    }
+
+    public String getAvatarFileName() {
+        return prefs.getString(KEY_AVATAR_FILE, "avatar_01.png");
+    }
+
+    public void saveAvatarFileName(String fileName) {
+        prefs.edit().putString(KEY_AVATAR_FILE, fileName).apply();
+    }
+
     public int getThemeMode() {
         return prefs.getInt(KEY_THEME, 0);
     }

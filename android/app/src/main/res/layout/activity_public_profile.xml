@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
@@ -16,11 +17,20 @@
         android:letterSpacing="0.12"
         android:textAllCaps="true" />
 
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/imgPublicAvatar"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="centerCrop"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+        android:background="#334155" />
+
     <TextView
         android:id="@+id/tvPublicUsername"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:text="Player"
         android:textColor="#FFFFFF"
         android:textSize="24sp"
@@ -49,7 +59,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="20dp"
         android:background="#1E293B"
         android:orientation="vertical"
         android:padding="20dp">

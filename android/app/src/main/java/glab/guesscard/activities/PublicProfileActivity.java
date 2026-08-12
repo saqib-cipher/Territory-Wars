@@ -27,6 +27,7 @@ public class PublicProfileActivity extends BaseActivity {
 
         String targetUid = getIntent().getStringExtra(EXTRA_TARGET_UID);
 
+        android.widget.ImageView imgAvatar = findViewById(R.id.imgPublicAvatar);
         TextView tvName = findViewById(R.id.tvPublicUsername);
         TextView tvUid = findViewById(R.id.tvPublicUid);
         TextView tvLevel = findViewById(R.id.tvPublicLevel);
@@ -44,6 +45,11 @@ public class PublicProfileActivity extends BaseActivity {
                     runOnUiThread(() -> {
                         String name = (String) data.getOrDefault("displayName", "Player");
                         tvName.setText(name);
+
+                        String avatarFile = (String) data.getOrDefault("avatarFileName", "avatar_01.png");
+                        if (imgAvatar != null) {
+                            glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(this, imgAvatar, avatarFile);
+                        }
 
                         Object lvlObj = data.get("level");
                         int level = lvlObj instanceof Long ? ((Long) lvlObj).intValue() : 1;

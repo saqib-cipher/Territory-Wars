@@ -21,6 +21,7 @@ public class GameContainer {
     private final FirebaseManager firebaseManager;
     private final GameSocketClient socketClient;
     private final AdManager adManager;
+    private final glab.guesscard.audio.GameAudio audio;
 
     public GameContainer(Context context) {
         Context appCtx = context.getApplicationContext();
@@ -29,6 +30,7 @@ public class GameContainer {
         this.repository = new Repository(preferences, firebaseManager);
         this.socketClient = new GameSocketClient(preferences);
         this.adManager = new AdManager(appCtx);
+        this.audio = new glab.guesscard.audio.GameAudio(appCtx);
     }
 
     public static synchronized GameContainer getInstance(Context context) {
@@ -43,4 +45,5 @@ public class GameContainer {
     public FirebaseManager getFirebaseManager() { return firebaseManager; }
     public GameSocketClient getSocketClient() { return socketClient; }
     public AdManager getAdManager() { return adManager; }
+    public glab.guesscard.audio.GameAudio getAudio() { return audio; }
 }

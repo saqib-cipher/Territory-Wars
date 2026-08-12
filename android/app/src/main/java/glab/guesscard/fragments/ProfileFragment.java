@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,7 +56,12 @@ public class ProfileFragment extends Fragment {
                 .get(ProfileViewModel.class);
 
         MaterialButton edit = view.findViewById(R.id.editProfileButton);
-        if (edit != null) edit.setOnClickListener(v -> showRenameDialog());
+        if (edit != null) {
+            edit.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), glab.guesscard.activities.EditProfileActivity.class);
+                startActivity(intent);
+            });
+        }
 
         MaterialButton btnFriends = view.findViewById(R.id.btnViewFriends);
         if (btnFriends != null) {
@@ -83,12 +89,33 @@ public class ProfileFragment extends Fragment {
             });
         }
 
+        ImageView avatarView = view.findViewById(R.id.profileAvatar);
+        if (avatarView != null) {
+            avatarView.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), glab.guesscard.activities.EditProfileActivity.class);
+                startActivity(intent);
+            });
+        }
+
         viewModel.getProfile().observe(getViewLifecycleOwner(), profile -> bind(view, profile));
         viewModel.getError().observe(getViewLifecycleOwner(),
                 msg -> Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show());
 
         viewModel.loadProfile();
         loadGameHistory(view, container);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getView() != null) {
+            GameContainer container = glab.guesscard.GuessCardApp.from(requireContext());
+            ImageView avatarView = getView().findViewById(R.id.profileAvatar);
+            String avatarFile = container.getPreferences().getAvatarFileName();
+            glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, avatarFile);
+            TextView username = getView().findViewById(R.id.profileUsername);
+            if (username != null) username.setText(container.getPreferences().getUsername());
+        }
     }
 
     private void bind(View view, PlayerProfile profile) {

@@ -1,6 +1,7 @@
 package glab.guesscard.audio;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.util.Log;
@@ -9,29 +10,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * SoundManager and MusicManager for Guess the Card party game.
- * Supports SoundPool playback for card, turn, question, and result effects,
- * as well as audio focus compliance.
+ * GameAudio handles loading and playing sound effects from assets/sounds/
+ * for card flips, correct/wrong answers, victory, and timer countdowns.
  */
 public class GameAudio {
     private static final String TAG = "GameAudio";
 
     public interface Sound {
         int CLICK = 1;
-        int CARD_SHUFFLE = 2;
         int CARD_FLIP = 3;
-        int CARD_REVEAL = 4;
         int QUESTION_YES = 5;
         int QUESTION_NO = 6;
-        int QUESTION_MAYBE = 7;
         int CORRECT = 8;
         int WRONG = 9;
-        int TIMER_TICK = 10;
-        int TIMER_WARNING = 11;
-        int TIMEOUT = 12;
+        int TIMER_TICK = 10;     // 10sec_timer.mp3
+        int TIMER_WARNING = 11;  // 3sec_timer.mp3
         int VICTORY = 13;
-        int DEFEAT = 14;
-        int PLAYER_JOIN = 15;
     }
 
     private final SoundPool soundPool;
@@ -51,6 +45,28 @@ public class GameAudio {
                 .setMaxStreams(8)
                 .setAudioAttributes(attrs)
                 .build();
+
+        loadAssetSounds(context);
+    }
+
+    private void loadAssetSounds(Context context) {
+        loadAssetSound(context, Sound.CARD_FLIP, "sounds/card_flip.mp3");
+        loadAssetSound(context, Sound.CORRECT, "sounds/correct.mp3");
+        loadAssetSound(context, Sound.WRONG, "sounds/wronganswer.mp3");
+        loadAssetSound(context, Sound.VICTORY, "sounds/winning.mp3");
+        loadAssetSound(context, Sound.TIMER_TICK, "sounds/10sec_timer.mp3");
+        loadAssetSound(context, Sound.TIMER_WARNING, "sounds/3sec_timer.mp3");
+    }
+
+    private void loadAssetSound(Context context, int soundType, String assetPath) {
+        try {
+            AssetFileDescriptor afd = context.getAssets().openFd(assetPath);
+            int soundId = soundPool.load(afd, 1);
+            soundMap.put(soundType, soundId);
+            Log.d(TAG, "Loaded asset sound: " + assetPath + " -> ID " + soundId);
+        } catch (Exception e) {
+            Log.w(TAG, "Could not load asset sound: " + assetPath, e);
+        }
     }
 
     public void setSoundEnabled(boolean enabled) {
@@ -75,8 +91,7 @@ public class GameAudio {
         if (soundId != null && soundId > 0) {
             soundPool.play(soundId, soundVolume, soundVolume, 1, 0, 1.0f);
         } else {
-            // Log fallback when raw audio resource isn't present
-            Log.d(TAG, "Triggered sound: " + soundType);
+            Log.d(TAG, "Triggered sound fallback: " + soundType);
         }
     }
 

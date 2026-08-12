@@ -22,7 +22,10 @@ import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.HashMap;
 
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
@@ -215,8 +218,17 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         String uid = user != null ? user.getUid() : prefs().getUserId();
         String name = user != null && user.getDisplayName() != null ? user.getDisplayName() : prefs().getUsername();
+        String avatarFile = prefs().getAvatarFileName();
 
-        firebaseManager.joinRoom(roomId, uid, name);
+        if (uid != null) {
+            Map<String, Object> pMap = new HashMap<>();
+            pMap.put("uid", uid);
+            pMap.put("displayName", name);
+            pMap.put("avatarFileName", avatarFile);
+            pMap.put("ready", isLocallyReady);
+            pMap.put("joinedAt", ServerValue.TIMESTAMP);
+            firebaseManager.getRoomRef(roomId).child("players").child(uid).setValue(pMap);
+        }
 
         roomPlayersRef = firebaseManager.getRoomRef(roomId).child("players");
         playersListener = new ChildEventListener() {
@@ -322,9 +334,13 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
     private void updateRoomUI(RoomInfo room) {
         if (room == null) return;
-        String displayCode = room.code != null && !room.code.isEmpty() ? room.code
-                : (currentRoomId != null ? "GC-" + Math.abs(currentRoomId.hashCode() % 9000 + 1000) : "GC-4892");
-        if (roomCodeText != null) roomCodeText.setText(displayCode);
+        ensureLocalPlayerInList(room);
+
+        if (room.code == null || room.code.isEmpty() || room.code.startsWith("GC-")) {
+            room.code = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+        }
+
+        if (roomCodeText != null) roomCodeText.setText(room.code);
         if (roomModeText != null)
             roomModeText.setText((room.mode != null ? room.mode : "ANIMALS") + " Mode (" + room.players.size() + "/5 Players)");
 
@@ -352,6 +368,27 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         playerAdapter.submitList(room.players);
         renderAvatarSlots(room);
         checkAutoStart(room);
+    }
+
+    private void ensureLocalPlayerInList(RoomInfo room) {
+        if (room == null) return;
+        if (room.players == null) room.players = new ArrayList<>();
+        String myUid = prefs().getUserId();
+        String myName = prefs().getUsername();
+        boolean found = false;
+        for (RoomInfo.LobbyPlayer p : room.players) {
+            if (p.userId != null && p.userId.equals(myUid)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found && myUid != null) {
+            RoomInfo.LobbyPlayer self = new RoomInfo.LobbyPlayer();
+            self.userId = myUid;
+            self.username = myName != null ? myName : "Player";
+            self.isReady = isLocallyReady;
+            room.players.add(0, self);
+        }
     }
 
     private void checkAutoStart(RoomInfo room) {
@@ -408,11 +445,17 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     }
 
     private void renderAvatarSlots(RoomInfo room) {
-        if (avatarContainer == null) return;
+        if (avatarContainer == null || room == null || room.players == null) return;
         avatarContainer.removeAllViews();
+        String selfUid = prefs().getUserId();
+        String selfAvatarFile = prefs().getAvatarFileName();
+
         for (RoomInfo.LobbyPlayer p : room.players) {
             PlayerAvatarView avatar = new PlayerAvatarView(this);
             avatar.setPlayerData(p.username, p.score, 1, p.isReady, false);
+            boolean isSelf = p.userId != null && p.userId.equals(selfUid);
+            String avatarFile = isSelf ? selfAvatarFile : "avatar_01.png";
+            avatar.setAvatarBitmap(glab.guesscard.utils.AvatarManager.getInstance().getAvatarByName(this, avatarFile));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             avatarContainer.addView(avatar, lp);

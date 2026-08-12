@@ -27,7 +27,7 @@
             android:id="@+id/tvSignInHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🔒 Sign in to unlock online modes"
+            android:text="Sign in to unlock online modes"
             android:textColor="#F59E0B"
             android:textSize="13sp"
             android:layout_marginBottom="16dp"
@@ -49,28 +49,21 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="12dp"
-            android:text="⚡ Quick Match" />
-
-        <glab.guesscard.ModernFButton
-            android:id="@+id/rankedButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginBottom="12dp"
-            android:text="🏆 Ranked Match" />
+            android:text="Quick Match" />
 
         <glab.guesscard.ModernFButton
             android:id="@+id/createRoomButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="12dp"
-            android:text="🚪 Create Private Room" />
+            android:text="Create Room" />
 
         <glab.guesscard.ModernFButton
             android:id="@+id/joinRoomButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="24dp"
-            android:text="🔑 Join Room (Code)" />
+            android:text="Join Room (Code)" />
 
         <!-- ── OFFLINE SECTION ── -->
         <TextView
@@ -87,7 +80,7 @@
             android:id="@+id/offlineButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="🤖 Practice Offline" />
+            android:text="Practice Offline" />
 
     </LinearLayout>
 </ScrollView>

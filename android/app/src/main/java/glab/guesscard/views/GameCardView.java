@@ -126,12 +126,17 @@ public class GameCardView extends FrameLayout {
     }
 
     public void animateFlipCard(Runnable onMidFlip) {
+        try {
+            glab.guesscard.GuessCardApp.from(getContext()).getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.CARD_FLIP);
+        } catch (Exception ignored) {}
+        HapticsHelper.vibrateClick(this);
+
         ObjectAnimator flipOut = ObjectAnimator.ofFloat(this, View.ROTATION_Y, 0f, 90f);
-        flipOut.setDuration(225);
+        flipOut.setDuration(180);
         flipOut.setInterpolator(new AccelerateDecelerateInterpolator());
 
         ObjectAnimator flipIn = ObjectAnimator.ofFloat(this, View.ROTATION_Y, -90f, 0f);
-        flipIn.setDuration(225);
+        flipIn.setDuration(180);
         flipIn.setInterpolator(new AccelerateDecelerateInterpolator());
 
         flipOut.addListener(new android.animation.AnimatorListenerAdapter() {
@@ -190,6 +195,9 @@ public class GameCardView extends FrameLayout {
     }
 
     public void animateCorrectGuess(Runnable onComplete) {
+        try {
+            glab.guesscard.GuessCardApp.from(getContext()).getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.CORRECT);
+        } catch (Exception ignored) {}
         HapticsHelper.vibrateCorrect(getContext());
 
         cardContentText.setText(cardWord);
@@ -213,6 +221,9 @@ public class GameCardView extends FrameLayout {
     }
 
     public void animateWrongGuess() {
+        try {
+            glab.guesscard.GuessCardApp.from(getContext()).getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.WRONG);
+        } catch (Exception ignored) {}
         HapticsHelper.vibrateWrong(getContext());
         ObjectAnimator shake = ObjectAnimator.ofFloat(this, View.TRANSLATION_X, 0f, 25f);
         shake.setDuration(350);

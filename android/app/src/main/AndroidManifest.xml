@@ -55,6 +55,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name="glab.guesscard.activities.EditProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name="glab.guesscard.activities.MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="false"

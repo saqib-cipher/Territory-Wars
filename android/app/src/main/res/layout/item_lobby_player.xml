@@ -15,22 +15,14 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <!-- Avatar Circle -->
-        <FrameLayout
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/gradient_hero">
-
-            <TextView
-                android:id="@+id/tvPlayerAvatarChar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="P"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </FrameLayout>
+        <!-- Avatar Image View -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imgLobbyPlayerAvatar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+            android:background="#334155" />
 
         <!-- Player Details -->
         <LinearLayout

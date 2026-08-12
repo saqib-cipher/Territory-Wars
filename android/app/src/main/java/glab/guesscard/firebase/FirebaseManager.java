@@ -10,6 +10,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import androidx.annotation.NonNull;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -345,11 +346,73 @@ public class FirebaseManager {
         });
     }
 
-    /** Set player presence in a room. */
-    public void joinRoom(String roomId, String uid, String displayName) {
+    public interface QuickMatchCallback {
+        void onRoomFound(String roomId, String roomCode, String mode);
+    }
+
+    /** Find an open room matching a specific mode (< 5 players) */
+    public void findOpenRoomByMode(String modeStr, QuickMatchCallback callback) {
+        database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    String rMode = child.child("mode").getValue(String.class);
+                    long pCount = child.child("players").getChildrenCount();
+                    if (pCount > 0 && pCount < 5 && (modeStr == null || modeStr.equalsIgnoreCase(rMode))) {
+                        String rId = child.getKey();
+                        String code = child.child("code").getValue(String.class);
+                        if (rId != null) {
+                            if (callback != null) callback.onRoomFound(rId, code, rMode != null ? rMode : modeStr);
+                            return;
+                        }
+                    }
+                }
+                if (callback != null) callback.onRoomFound(null, null, null);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onRoomFound(null, null, null);
+            }
+        });
+    }
+
+    /** Upload room details & host player presence to Firebase Realtime Database /rooms/{roomId} */
+    public void createRoomOnFirebase(String roomId, String modeStr, String hostUid, String hostName, String avatarFileName) {
+        if (roomId == null) return;
+        DatabaseReference roomRef = database.child("rooms").child(roomId);
+        Map<String, Object> roomData = new HashMap<>();
+        roomData.put("roomId", roomId);
+        roomData.put("code", roomId);
+        roomData.put("mode", modeStr != null ? modeStr : "ANIMALS");
+        roomData.put("hostUid", hostUid != null ? hostUid : "");
+        roomData.put("status", "LOBBY");
+        roomData.put("createdAt", ServerValue.TIMESTAMP);
+        roomRef.updateChildren(roomData);
+
+        if (hostUid != null && !hostUid.isEmpty()) {
+            Map<String, Object> playerData = new HashMap<>();
+            playerData.put("uid", hostUid);
+            playerData.put("displayName", hostName != null ? hostName : "Player");
+            playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
+            playerData.put("joinedAt", ServerValue.TIMESTAMP);
+            playerData.put("ready", false);
+            roomRef.child("players").child(hostUid).setValue(playerData);
+        }
+    }
+
+    /** Save user's selected avatarIndex in /users/{uid}/avatarIndex */
+    public void updateUserAvatar(String uid, int avatarIndex) {
+        if (uid == null) return;
+        database.child("users").child(uid).child("avatarIndex").setValue(avatarIndex);
+    }
+
+    /** Set player presence in a room with avatarIndex. */
+    public void joinRoom(String roomId, String uid, String displayName, int avatarIndex) {
         Map<String, Object> playerData = new HashMap<>();
         playerData.put("uid", uid);
         playerData.put("displayName", displayName);
+        playerData.put("avatarIndex", avatarIndex);
         playerData.put("joinedAt", ServerValue.TIMESTAMP);
         playerData.put("ready", false);
         database.child("rooms").child(roomId).child("players").child(uid).setValue(playerData);

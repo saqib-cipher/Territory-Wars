@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
 import glab.guesscard.activities.PublicProfileActivity;
 import glab.guesscard.models.RoomInfo;
+import glab.guesscard.utils.AvatarManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +48,9 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
 
         holder.tvName.setText(name);
         holder.tvYouTag.setVisibility(isSelf ? View.VISIBLE : View.GONE);
-        holder.tvAvatarChar.setText(name.length() > 0 ? name.substring(0, 1).toUpperCase() : "P");
+
+        String avatarFile = isSelf ? GuessCardApp.from(context).getPreferences().getAvatarFileName() : "avatar_01.png";
+        AvatarManager.getInstance().loadAvatarIntoImageView(context, holder.imgAvatar, avatarFile);
 
         holder.tvStatus.setText(u.isReady ? "READY" : "WAITING");
         holder.tvStatus.setTextColor(u.isReady ?
@@ -78,12 +82,13 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvAvatarChar, tvName, tvYouTag, tvLevel, tvStatus;
+        ImageView imgAvatar;
+        TextView tvName, tvYouTag, tvLevel, tvStatus;
         ModernFButton btnAddFriend;
 
         VH(@NonNull View itemView) {
             super(itemView);
-            tvAvatarChar = itemView.findViewById(R.id.tvPlayerAvatarChar);
+            imgAvatar = itemView.findViewById(R.id.imgLobbyPlayerAvatar);
             tvName = itemView.findViewById(R.id.tvLobbyPlayerName);
             tvYouTag = itemView.findViewById(R.id.tvYouTag);
             tvLevel = itemView.findViewById(R.id.tvLobbyPlayerLevel);
