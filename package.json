@@ -5,8 +5,8 @@
   "main": "server/src/index.js",
   "scripts": {
     "start": "node server/src/index.js",
-    "dev": "cd server && npm run dev",
-    "build": "cd server && npm install"
+    "dev": "npm --prefix server run dev",
+    "build": "npm --prefix server install"
   },
   "engines": {
     "node": ">=18"

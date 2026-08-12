@@ -5,7 +5,7 @@ providers = ["node"]
 nixPkgs = ["nodejs_18"]
 
 [phases.install]
-cmds = ["cd server && npm install"]
+cmds = ["npm --prefix server install"]
 
 [start]
-cmd = "cd server && npm start"
+cmd = "node server/src/index.js"
