@@ -1,15 +1,15 @@
 FROM node:18-alpine
 
-WORKDIR /app/server
+WORKDIR /app
 
-COPY server/package*.json ./
-RUN npm install --only=production
+COPY server/package*.json ./server/
+RUN cd server && npm install --only=production
 
-COPY server/ ./
+COPY server/ ./server/
 
 EXPOSE 8080
 
 ENV PORT=8080
 ENV NODE_ENV=production
 
-CMD ["node", "src/index.js"]
+CMD ["node", "server/src/index.js"]
