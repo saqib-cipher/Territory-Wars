@@ -10,10 +10,14 @@ const MIN_PLAYERS = 2;
  * Authoritative Guess the Card Room Manager.
  * Handles 2-5 player rooms, mode configuration, server-side card masking,
  * question counts, turns, and authoritative scoring.
+ *
+ * Uses host UID as the stable room identifier so reconnection/re-login
+ * returns to the same room instead of creating a new one.
  */
 class RoomManager {
   constructor() {
     this.rooms = new Map(); // roomId -> room
+    this.hostRoomIndex = new Map(); // hostUid -> roomId (persistent rooms)
   }
 
   static generateCode() {
@@ -25,14 +29,39 @@ class RoomManager {
     return code;
   }
 
+  /**
+   * Create or rejoin a room keyed by the host's UID.
+   * If the host already has an active room, returns it instead of creating a new one.
+   */
   createRoom(host, mode = 'ANIMALS', customConfig = null) {
-    const roomId = crypto.randomUUID();
+    // Reuse existing room owned by this host (supports re-login)
+    const existingRoomId = this.hostRoomIndex.get(host.id);
+    if (existingRoomId) {
+      const existing = this.rooms.get(existingRoomId);
+      if (existing && !existing.startedAt) {
+        // Update host data (avatar may have changed since last login)
+        existing.players.set(host.id, {
+          ...host,
+          isReady: false,
+          isHost: true,
+          score: existing.players.get(host.id)?.score || 0,
+        });
+        existing.hostId = host.id;
+        return existing;
+      }
+      // Old room was started/finished — clean up and create fresh
+      this.hostRoomIndex.delete(host.id);
+      if (existing) this.rooms.delete(existingRoomId);
+    }
+
+    const roomId = `room_${host.id}`; // stable room id from host UID
     const code = RoomManager.generateCode();
     const modeConfig = getModeConfig(mode);
 
     const room = {
       roomId,
       code,
+      uniqueCode: `${host.username || 'Host'}-${code}`, // human-readable unique code
       mode: (mode || 'ANIMALS').toUpperCase(),
       maxPlayers: Math.min(MAX_PLAYERS, customConfig?.maxPlayers || MAX_PLAYERS),
       questionLimit: customConfig?.questionLimit || modeConfig.questionLimit || 10,
@@ -40,6 +69,7 @@ class RoomManager {
       hostId: host.id,
       players: new Map([[host.id, { ...host, isReady: false, isHost: true, score: 0 }]]),
       startedAt: null,
+      finishedAt: null,
       currentTurnIndex: 0,
       currentTurnPlayerId: null,
       currentCard: null,
@@ -49,8 +79,10 @@ class RoomManager {
       turnStartTime: null,
       totalRounds: 1,
       currentRound: 1,
+      matchHistory: [], // per-round results for final summary
     };
     this.rooms.set(roomId, room);
+    this.hostRoomIndex.set(host.id, roomId);
     return room;
   }
 
@@ -67,7 +99,17 @@ class RoomManager {
   }
 
   join(room, user) {
-    if (room.players.has(user.id)) return false;
+    // If this user is the host, update their data (avatar sync on re-login)
+    if (room.hostId === user.id) {
+      room.players.set(user.id, {
+        ...user,
+        isReady: room.players.get(user.id)?.isReady || false,
+        isHost: true,
+        score: room.players.get(user.id)?.score || 0,
+      });
+      return true;
+    }
+    if (room.players.has(user.id)) return true; // already in room
     if (room.players.size >= room.maxPlayers) return false;
     if (room.startedAt) return false;
     room.players.set(user.id, { ...user, isReady: false, isHost: false, score: 0 });
@@ -154,7 +196,7 @@ class RoomManager {
 
   submitGuess(room, userId, guessText) {
     if (!room.currentCard || room.currentTurnPlayerId !== userId) {
-      return { isCorrect: false, scoreAwarded: 0 };
+      return { isCorrect: false, scoreAwarded: 0, cardAnswer: room.currentCard?.word || '' };
     }
 
     const isCorrect = validateGuess(room.currentCard, guessText);
@@ -172,7 +214,33 @@ class RoomManager {
       }
     }
 
+    // Record this round in match history
+    room.matchHistory.push({
+      round: room.currentRound,
+      turnPlayerId: userId,
+      cardWord: room.currentCard.word,
+      guess: guessText,
+      isCorrect,
+      scoreAwarded,
+      timestamp: Date.now(),
+    });
+
     return { isCorrect, scoreAwarded, cardAnswer: room.currentCard.word };
+  }
+
+  /**
+   * Get final standings for a completed match.
+   */
+  getStandings(room) {
+    return [...room.players.values()]
+      .map((p) => ({
+        userId: p.id,
+        username: p.username,
+        avatarId: p.avatarId || 'default',
+        score: p.score || 0,
+        isHost: p.isHost,
+      }))
+      .sort((a, b) => b.score - a.score);
   }
 
   /** Public view of room state for a given player socket (role-aware card masking). */
@@ -187,16 +255,19 @@ class RoomManager {
     return {
       roomId: room.roomId,
       code: room.code,
+      uniqueCode: room.uniqueCode,
       mode: room.mode,
       maxPlayers: room.maxPlayers,
       questionLimit: room.questionLimit,
       roundTimeSeconds: room.roundTimeSeconds,
       hostId: room.hostId,
       startedAt: room.startedAt,
+      finishedAt: room.finishedAt,
       currentTurnPlayerId: room.currentTurnPlayerId,
       currentRound: room.currentRound,
       totalRounds: room.totalRounds,
       card: cardDisplay,
+      cardCategory: room.currentCard?.category || '',
       isGuesser,
       questionsRemaining: room.questionsRemaining,
       questionHistory: room.questionHistory,
@@ -212,6 +283,7 @@ class RoomManager {
   }
 
   destroy(room) {
+    this.hostRoomIndex.delete(room.hostId);
     this.rooms.delete(room.roomId);
   }
 }

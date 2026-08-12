@@ -12,7 +12,7 @@ import glab.guesscard.di.GameContainer;
 import glab.guesscard.network.PreferenceManager;
 
 /**
- * Base activity: edge-to-edge insets and DI container accessor.
+ * Base activity: edge-to-edge insets, DI container accessor, and audio lifecycle.
  */
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -22,6 +22,18 @@ public abstract class BaseActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Re-enable audio when returning to this activity
+        try {
+            glab.guesscard.audio.GameAudio audio = container().getAudio();
+            if (audio != null) {
+                audio.setSoundEnabled(true);
+            }
+        } catch (Exception ignored) {}
     }
 
     @Override
