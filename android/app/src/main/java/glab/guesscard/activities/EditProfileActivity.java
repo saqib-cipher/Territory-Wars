@@ -118,18 +118,10 @@ public class EditProfileActivity extends BaseActivity {
 
         String uid = prefs().getUserId();
         if (uid != null) {
-            // Sync to Firebase RTDB
-            container().getFirebaseManager().updateDisplayName(uid, name);
-            container().getFirebaseManager().updateUserAvatar(uid, 
-                AvatarManager.getInstance().getAvatarIndexFromFileName(selectedAvatarFile));
+            container().getFirebaseManager().getDatabaseRef()
+                    .child("users").child(uid).child("displayName").setValue(name);
             container().getFirebaseManager().getDatabaseRef()
                     .child("users").child(uid).child("avatarFileName").setValue(selectedAvatarFile);
-
-            // Also sync to server via API
-            glab.guesscard.network.ApiClient.updateProfile(name, selectedAvatarFile, 
-                unused -> {}, 
-                err -> runOnUiThread(() -> Toast.makeText(EditProfileActivity.this, 
-                    "Server sync failed: " + err, Toast.LENGTH_SHORT).show()));
         }
 
         Toast.makeText(this, "Profile updated!", Toast.LENGTH_SHORT).show();

@@ -48,16 +48,6 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvMatchInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="ANIMALS Mode • Match Complete"
-            android:textColor="#64748B"
-            android:textSize="11sp"
-            android:visibility="gone" />
-
         <Space
             android:layout_width="match_parent"
             android:layout_height="36dp" />
@@ -66,7 +56,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="FINAL STANDINGS"
+            android:text="Final Leaderboard"
             android:textColor="#94A3B8"
             android:textSize="12sp"
             android:textAllCaps="true"
@@ -74,14 +64,13 @@
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
-            android:id="@+id/standingsContainer"
+            android:id="@+id/leaderboardContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="#1E1B4B"
             android:padding="16dp"
-            android:layout_marginBottom="32dp"
-            android:visibility="gone" />
+            android:layout_marginBottom="32dp" />
 
         <!-- Action Buttons -->
         <glab.guesscard.ModernFButton

@@ -81,22 +81,6 @@ public class AvatarManager {
         return avatarFileNames.isEmpty() ? 21 : avatarFileNames.size();
     }
 
-    /** Convert a filename like "avatar_05.png" to its zero-based index (4). */
-    public int getAvatarIndexFromFileName(String fileName) {
-        if (fileName == null || fileName.isEmpty()) return 0;
-        // Try to extract number from patterns like "avatar_XX.png"
-        try {
-            String numPart = fileName.replaceAll("[^0-9]", "");
-            if (!numPart.isEmpty()) {
-                int idx = Integer.parseInt(numPart) - 1;
-                return Math.max(0, idx);
-            }
-        } catch (NumberFormatException ignored) {}
-        // Fallback: find index by name
-        int idx = avatarFileNames.indexOf(fileName);
-        return idx >= 0 ? idx : 0;
-    }
-
     public String getAvatarFileNameByIndex(Context context, int index) {
         init(context);
         if (avatarFileNames.isEmpty()) return DEFAULT_ACCOUNT;

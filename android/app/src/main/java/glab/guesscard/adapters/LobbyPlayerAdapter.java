@@ -49,27 +49,13 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
         holder.tvName.setText(name);
         holder.tvYouTag.setVisibility(isSelf ? View.VISIBLE : View.GONE);
 
-        // Use avatar from server data, fall back to local prefs for self
-        String avatarFile;
-        if (isSelf) {
-            avatarFile = GuessCardApp.from(context).getPreferences().getAvatarFileName();
-        } else if (u.avatarId != null && !u.avatarId.isEmpty() && !u.avatarId.equals("default")) {
-            avatarFile = u.avatarId;
-        } else {
-            avatarFile = "avatar_01.png";
-        }
+        String avatarFile = isSelf ? GuessCardApp.from(context).getPreferences().getAvatarFileName() : "avatar_01.png";
         AvatarManager.getInstance().loadAvatarIntoImageView(context, holder.imgAvatar, avatarFile);
 
         holder.tvStatus.setText(u.isReady ? "READY" : "WAITING");
         holder.tvStatus.setTextColor(u.isReady ?
                 android.graphics.Color.parseColor("#10B981") :
                 android.graphics.Color.parseColor("#F59E0B"));
-
-        // Show score if in-game
-        if (holder.tvLevel != null && u.score > 0) {
-            holder.tvLevel.setText(u.score + " pts");
-            holder.tvLevel.setVisibility(View.VISIBLE);
-        }
 
         if (isSelf) {
             holder.btnAddFriend.setVisibility(View.GONE);

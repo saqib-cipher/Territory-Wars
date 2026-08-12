@@ -77,11 +77,6 @@ public class AuthActivity extends BaseActivity {
                 if (user != null) {
                     prefs().saveSession(user.getUid(), user.getUid(),
                             "Guest_" + user.getUid().substring(0, 5), true);
-                    // Restore saved avatar or use default
-                    String savedAvatar = prefs().getAvatarFileName();
-                    if (savedAvatar == null || savedAvatar.isEmpty()) {
-                        prefs().saveAvatarFileName("avatar_01.png");
-                    }
                 }
                 goMain();
             }

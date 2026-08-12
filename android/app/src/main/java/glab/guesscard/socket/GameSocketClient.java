@@ -66,37 +66,8 @@ public class GameSocketClient {
         if (args.length > 0 && args[0] instanceof JSONObject) {
             JSONObject data = (JSONObject) args[0];
             MatchResult result = new MatchResult();
-            result.matchId = data.optString("matchId", data.optString("roomId", "remote"));
-            result.mode = data.optString("mode", "ANIMALS");
+            result.matchId = data.optString("roomId", "remote");
             result.playedAtEpochMillis = System.currentTimeMillis();
-
-            // Parse winner
-            JSONObject winnerObj = data.optJSONObject("winner");
-            if (winnerObj != null) {
-                result.winner = new MatchResult.StandingsEntry();
-                result.winner.userId = winnerObj.optString("userId");
-                result.winner.username = winnerObj.optString("username");
-                result.winner.avatarId = winnerObj.optString("avatarId", "default");
-                result.winner.score = winnerObj.optInt("score", 0);
-            }
-
-            // Parse standings
-            org.json.JSONArray standingsArr = data.optJSONArray("standings");
-            if (standingsArr != null) {
-                for (int i = 0; i < standingsArr.length(); i++) {
-                    JSONObject entry = standingsArr.optJSONObject(i);
-                    if (entry != null) {
-                        MatchResult.StandingsEntry se = new MatchResult.StandingsEntry();
-                        se.userId = entry.optString("userId");
-                        se.username = entry.optString("username");
-                        se.avatarId = entry.optString("avatarId", "default");
-                        se.score = entry.optInt("score", 0);
-                        se.isHost = entry.optBoolean("isHost", false);
-                        result.standings.add(se);
-                    }
-                }
-            }
-
             if (listener != null) listener.onGameEnd(result);
         }
     };
@@ -123,12 +94,10 @@ public class GameSocketClient {
             JSONObject data = (JSONObject) args[0];
             listener.onGuessResult(
                     data.optString("guessedBy"),
-                    data.optString("guessedByName", "Player"),
                     data.optString("guess"),
                     data.optBoolean("isCorrect", false),
                     data.optInt("scoreAwarded", 0),
-                    data.optString("cardAnswer", ""),
-                    data.optString("cardCategory", ""));
+                    data.optString("cardAnswer", ""));
         }
     };
     private final Emitter.Listener onTurnStarted = args -> {
@@ -136,27 +105,7 @@ public class GameSocketClient {
             JSONObject data = (JSONObject) args[0];
             listener.onTurnStarted(
                     data.optString("currentTurnPlayerId"),
-                    data.optInt("currentRound", 1),
-                    data.optBoolean("switchedPositions", false));
-        }
-    };
-
-    private final Emitter.Listener onPlayerJoined = args -> {
-        if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
-            JSONObject data = (JSONObject) args[0];
-            listener.onPlayerJoined(
-                    data.optString("userId"),
-                    data.optString("username"),
-                    data.optString("avatarId", "default"));
-        }
-    };
-
-    private final Emitter.Listener onPlayerLeft = args -> {
-        if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
-            JSONObject data = (JSONObject) args[0];
-            listener.onPlayerLeft(
-                    data.optString("userId"),
-                    data.optString("username", "Player"));
+                    data.optInt("currentRound", 1));
         }
     };
 
@@ -192,8 +141,6 @@ public class GameSocketClient {
             socket.on("questionAnswered", onQuestionAnswered);
             socket.on("guessResult", onGuessResult);
             socket.on("turnStarted", onTurnStarted);
-            socket.on("playerJoined", onPlayerJoined);
-            socket.on("playerLeft", onPlayerLeft);
             socket.connect();
         } catch (Exception e) {
             Log.e(TAG, "failed to create socket", e);
