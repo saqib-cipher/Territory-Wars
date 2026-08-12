@@ -1,6 +1,7 @@
 package glab.guesscard.views;
 
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,13 +10,12 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
-import android.animation.ValueAnimator;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * Custom PlayerAvatarView displaying avatar circle, username, score, ready status,
- * and animated glowing border/pulse ring for the active turn player.
+ * Custom PlayerAvatarView displaying avatar circle, username, score/level badge, ready status,
+ * mic icon, and animated glowing border/pulse ring for the active turn player.
  */
 public class PlayerAvatarView extends LinearLayout {
 
@@ -23,9 +23,11 @@ public class PlayerAvatarView extends LinearLayout {
     private TextView nameText;
     private TextView scoreText;
     private TextView readyText;
+    private TextView levelText;
     private ObjectAnimator pulseAnim;
 
     private boolean isTurn = false;
+    private boolean isMuted = false;
 
     public PlayerAvatarView(Context context) {
         super(context);
@@ -45,7 +47,7 @@ public class PlayerAvatarView extends LinearLayout {
     private void init(Context context) {
         setOrientation(VERTICAL);
         setGravity(Gravity.CENTER);
-        setPadding(12, 12, 12, 12);
+        setPadding(10, 8, 10, 8);
 
         avatarCircle = new View(context) {
             private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -69,7 +71,7 @@ public class PlayerAvatarView extends LinearLayout {
 
                 // Avatar letter placeholder
                 textPaint.setColor(Color.WHITE);
-                textPaint.setTextSize(size * 0.45f);
+                textPaint.setTextSize(size * 0.42f);
                 textPaint.setTextAlign(Paint.Align.CENTER);
                 textPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
 
@@ -81,19 +83,25 @@ public class PlayerAvatarView extends LinearLayout {
             }
         };
 
-        LinearLayout.LayoutParams circleLp = new LinearLayout.LayoutParams(96, 96);
+        LinearLayout.LayoutParams circleLp = new LinearLayout.LayoutParams(92, 92);
         circleLp.gravity = Gravity.CENTER_HORIZONTAL;
         addView(avatarCircle, circleLp);
 
         nameText = new TextView(context);
-        nameText.setTextSize(12);
+        nameText.setTextSize(11);
         nameText.setTextColor(Color.WHITE);
         nameText.setGravity(Gravity.CENTER);
         nameText.setSingleLine(true);
         nameText.setText("Player");
 
+        levelText = new TextView(context);
+        levelText.setTextSize(9);
+        levelText.setTextColor(Color.parseColor("#38BDF8"));
+        levelText.setGravity(Gravity.CENTER);
+        levelText.setText("Lvl 1");
+
         scoreText = new TextView(context);
-        scoreText.setTextSize(11);
+        scoreText.setTextSize(10);
         scoreText.setTextColor(Color.parseColor("#F59E0B"));
         scoreText.setGravity(Gravity.CENTER);
         scoreText.setText("0 pts");
@@ -105,12 +113,18 @@ public class PlayerAvatarView extends LinearLayout {
         readyText.setVisibility(GONE);
 
         addView(nameText);
+        addView(levelText);
         addView(scoreText);
         addView(readyText);
     }
 
     public void setPlayerData(String username, int score, boolean isReady, boolean isTurn) {
+        setPlayerData(username, score, 1, isReady, isTurn);
+    }
+
+    public void setPlayerData(String username, int score, int level, boolean isReady, boolean isTurn) {
         if (username != null) nameText.setText(username);
+        levelText.setText("Lvl " + level);
         scoreText.setText(score + " pts");
         readyText.setText(isReady ? "READY ✓" : "NOT READY");
         readyText.setVisibility(isReady ? VISIBLE : GONE);
@@ -123,6 +137,11 @@ public class PlayerAvatarView extends LinearLayout {
         } else {
             stopTurnPulse();
         }
+    }
+
+    public void setMuted(boolean muted) {
+        this.isMuted = muted;
+        nameText.setText((isMuted ? "🔇 " : "🎤 ") + (nameText.getText() != null ? nameText.getText().toString().replace("🔇 ", "").replace("🎤 ", "") : ""));
     }
 
     private void startTurnPulse() {

@@ -72,6 +72,8 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
 
     private boolean isOfflineMode = false;
     private boolean isGuesser = true;
+    private boolean isSelfMuted = false;
+    private boolean isOthersMuted = false;
     private QuestionHistoryAdapter historyAdapter;
     private String currentRoomId;
 
@@ -111,7 +113,29 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
 
         bindActionButtons(view);
         setupVoiceButton();
+        setupMuteControls(view);
         initGameMode();
+    }
+
+    private void setupMuteControls(View view) {
+        ModernFButton btnMuteSelf = view.findViewById(R.id.btnMuteSelf);
+        ModernFButton btnMuteOthers = view.findViewById(R.id.btnMuteOthers);
+
+        if (btnMuteSelf != null) {
+            btnMuteSelf.setOnClickListener(v -> {
+                isSelfMuted = !isSelfMuted;
+                btnMuteSelf.setText(isSelfMuted ? "🔇 Mic Off" : "🎤 Mic On");
+                Toast.makeText(requireContext(), isSelfMuted ? "Microphone muted" : "Microphone unmuted 🎤", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnMuteOthers != null) {
+            btnMuteOthers.setOnClickListener(v -> {
+                isOthersMuted = !isOthersMuted;
+                btnMuteOthers.setText(isOthersMuted ? "🔇 Muted" : "🔊 Audio On");
+                Toast.makeText(requireContext(), isOthersMuted ? "Incoming audio muted 🔇" : "Incoming audio enabled 🔊", Toast.LENGTH_SHORT).show();
+            });
+        }
     }
 
     private void initGameMode() {
@@ -158,6 +182,10 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
     }
 
     private void startVoiceRecognition() {
+        if (isSelfMuted) {
+            Toast.makeText(requireContext(), "Unmute your mic first! 🎙️", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (voiceHelper == null) {
             voiceHelper = new VoiceRecognitionHelper(requireContext(), new VoiceRecognitionHelper.Listener() {
                 @Override
@@ -373,7 +401,10 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         for (RoomInfo.LobbyPlayer p : room.players) {
             PlayerAvatarView avatar = new PlayerAvatarView(requireContext());
             boolean isCurrentTurn = p.userId != null && p.userId.equals(room.currentTurnPlayerId);
-            avatar.setPlayerData(p.username, p.score, p.isReady, isCurrentTurn);
+            avatar.setPlayerData(p.username, p.score, 1, p.isReady, isCurrentTurn);
+            if (p.userId != null && preferences != null && p.userId.equals(preferences.getUserId())) {
+                avatar.setMuted(isSelfMuted);
+            }
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             gamePlayerContainer.addView(avatar, lp);
@@ -385,8 +416,20 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         if (!isAdded()) return;
         requireActivity().runOnUiThread(() -> {
             if (isCorrect) {
-                gameCardView.animateCorrectGuess(() ->
-                        Toast.makeText(requireContext(), "🎉 " + guessedBy + " guessed it! +" + scoreAwarded + " pts", Toast.LENGTH_LONG).show());
+                int pts = scoreAwarded > 0 ? scoreAwarded : 100;
+                gameCardView.animateCorrectGuess(() -> {
+                    Toast.makeText(requireContext(), "🎉 " + guessedBy + " guessed it correctly! +" + pts + " pts\nShifting positions...", Toast.LENGTH_LONG).show();
+                    // Shift position: rotate roles for next card
+                    isGuesser = !isGuesser;
+                    updateRoleControls();
+                    if (tvCurrentPlayer != null) {
+                        tvCurrentPlayer.setText(isGuesser ? "Your turn to ask questions!" : "Answer the questions — YES or NO");
+                    }
+                });
+                // Save history to Firebase
+                if (firebaseManager != null && preferences != null) {
+                    firebaseManager.saveGameHistory(preferences.getUserId(), "ANIMALS", pts, true, guess);
+                }
             } else {
                 gameCardView.animateWrongGuess();
                 Toast.makeText(requireContext(), "❌ Wrong guess by " + guessedBy + ": " + guess, Toast.LENGTH_SHORT).show();
@@ -402,6 +445,9 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
     @Override
     public void onGameEnd(MatchResult result) {
         if (!isAdded()) return;
+        if (firebaseManager != null && preferences != null) {
+            firebaseManager.saveGameHistory(preferences.getUserId(), "ANIMALS", result.score, result.won, "");
+        }
         requireActivity().runOnUiThread(() -> {
             Intent intent = new Intent(requireContext(), WinnerActivity.class);
             intent.putExtra("winnerName", "Winner");

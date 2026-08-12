@@ -4,142 +4,149 @@
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <!-- ── HEADER BANNER ── -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="60dp"
         android:background="@drawable/gradient_hero">
+
+        <!-- Top-Right Leave Room Button -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/leaveRoomButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="10dp"
+            android:text="Leave"
+            android:textSize="11sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/roomCodeContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="GAME LOBBY"
-                android:textColor="#94A3B8"
-                android:textSize="12sp"
-                android:textAllCaps="true"
-                android:letterSpacing="0.12" />
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+                <TextView
+                    android:id="@+id/roomModeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Animals Mode (1/5 Players)"
+                    android:textColor="#F59E0B"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
 
-            <TextView
-                android:id="@+id/roomCodeText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="A7K29"
-                android:textColor="#FFFFFF"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.2" />
+                <TextView
+                    android:id="@+id/roomCodeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GC-7842"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
 
-            <TextView
-                android:id="@+id/roomModeText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Animals Mode (2-5 Players)"
-                android:textColor="#F59E0B"
-                android:textSize="13sp" />
+            </LinearLayout>
 
         </LinearLayout>
     </FrameLayout>
 
-    <!-- ── PLAYERS (2-5 DYNAMIC SLOTS) SECTION ── -->
+    <!-- ── WAITING STATUS BANNER ── -->
+    <TextView
+        android:id="@+id/tvLobbyStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1E293B"
+        android:padding="10dp"
+        android:text="Waiting for other players to join (Need 2+ players)..."
+        android:textColor="#38BDF8"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- ── PLAYERS IN ROOM SECTION ── -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="4dp"
         android:text="Connected Players (2 - 5)"
         android:textColor="#94A3B8"
-        android:textSize="12sp"
-        android:textAllCaps="true" />
+        android:textSize="11sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1" />
 
     <!-- Container for dynamic PlayerAvatarViews -->
     <LinearLayout
         android:id="@+id/playerAvatarContainer"
         android:layout_width="match_parent"
-        android:layout_height="110dp"
+        android:layout_height="72dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="8dp" />
+        android:padding="4dp" />
 
     <!-- RecyclerView for detailed player status list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/playersList"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_marginBottom="12dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="8dp" />
+
+    <!-- ── INVITE FRIENDS SECTION ── -->
+    <TextView
+        android:id="@+id/tvInviteFriendsHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="INVITE FRIENDS TO ROOM"
+        android:textColor="#38BDF8"
+        android:textSize="11sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvInviteFriends"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:scrollbars="none"
+        android:layout_marginBottom="10dp" />
 
     <!-- ── ACTION BUTTONS ── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:orientation="horizontal">
 
         <glab.guesscard.ModernFButton
             android:id="@+id/readyButton"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="I'm Ready ✓" />
+            android:layout_marginEnd="6dp"
+            android:text="I'm Ready"
+            android:visibility="gone" />
 
         <glab.guesscard.ModernFButton
-            android:id="@+id/leaveRoomButton"
+            android:id="@+id/btnStartMatch"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Leave Room" />
+            android:layout_marginStart="6dp"
+            android:text="START MATCH"
+            android:visibility="gone" />
 
     </LinearLayout>
 
-    <!-- ── CHAT SECTION ── -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/chatList"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/chatInput"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:background="#1E293B"
-                android:hint="Type room message..."
-                android:textColorHint="#64748B"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp" />
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/sendChatButton"
-                android:layout_width="80dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:text="Send" />
-
-        </LinearLayout>
-    </LinearLayout>
 </LinearLayout>

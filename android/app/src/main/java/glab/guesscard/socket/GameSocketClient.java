@@ -176,6 +176,10 @@ public class GameSocketClient {
         emit("setReady", ready);
     }
 
+    public void startGame() {
+        emit("startGame");
+    }
+
     public void sendChat(String roomId, String text) {
         emit("chatMessage", roomId, text);
     }

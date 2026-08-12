@@ -6,9 +6,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import glab.guesscard.R;
 import glab.guesscard.activities.CustomModeActivity;
 import glab.guesscard.activities.GameActivity;
@@ -19,7 +24,7 @@ import glab.guesscard.network.PreferenceManager;
 
 /**
  * Home screen for Guess the Card party game:
- * Mode selection (Animals, Food, Countries, Celebrities, Custom) and Quick Action buttons.
+ * Displays online game modes when authenticated/online, or offline practice mode when offline.
  */
 public class HomeFragment extends Fragment {
 
@@ -38,16 +43,27 @@ public class HomeFragment extends Fragment {
         GameContainer appContainer = glab.guesscard.GuessCardApp.from(requireContext());
         PreferenceManager prefs = appContainer.getPreferences();
 
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        boolean isOnline = user != null && !user.isAnonymous();
+
+        View onlineContainer = view.findViewById(R.id.onlineModesContainer);
+        View offlineContainer = view.findViewById(R.id.offlinePracticeContainer);
+
+        if (isOnline) {
+            if (onlineContainer != null) onlineContainer.setVisibility(View.VISIBLE);
+            if (offlineContainer != null) offlineContainer.setVisibility(View.GONE);
+        } else {
+            if (onlineContainer != null) onlineContainer.setVisibility(View.GONE);
+            if (offlineContainer != null) offlineContainer.setVisibility(View.VISIBLE);
+        }
+
         TextView tvPlayerName = view.findViewById(R.id.tvPlayerName);
         if (tvPlayerName != null) {
             String username = prefs.getUsername();
-            String userId   = prefs.getUserId();
-            if (username != null && !username.isEmpty() && !"Offline Player".equals(username)) {
+            if (isOnline && username != null && !username.isEmpty()) {
                 tvPlayerName.setText("Welcome back, " + username);
-            } else if ("offline_user".equals(userId)) {
-                tvPlayerName.setText("Playing Offline Mode");
             } else {
-                tvPlayerName.setText("Party Game for 2 - 5 Players");
+                tvPlayerName.setText("Playing Offline Mode");
             }
         }
 
@@ -60,31 +76,18 @@ public class HomeFragment extends Fragment {
         // Custom Mode Creator
         View customCard = view.findViewById(R.id.modeCustom);
         if (customCard != null) {
-            if (customCard.getBackground() != null) {
-                customCard.setBackground(customCard.getBackground().mutate());
-            }
             customCard.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), CustomModeActivity.class);
                 startActivity(intent);
             });
         }
 
-        // Quick Multiplayer
-        View btnMultiplayer = view.findViewById(R.id.btnQuickMultiplayer);
-        if (btnMultiplayer != null) {
-            btnMultiplayer.setOnClickListener(v -> {
-                Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                intent.putExtra(LobbyActivity.EXTRA_MODE, GameMode.ANIMALS.name());
-                startActivity(intent);
-            });
-        }
-
-        // Quick Offline Practice
-        View btnOffline = view.findViewById(R.id.btnQuickOffline);
+        // Offline Practice Button
+        View btnOffline = view.findViewById(R.id.btnOfflinePractice);
         if (btnOffline != null) {
             btnOffline.setOnClickListener(v -> {
                 startActivity(GameActivity.intent(
-                        requireContext(), GameMode.ANIMALS, "practice", 60_000L));
+                        requireContext(), GameMode.OFFLINE, "practice", 60_000L));
             });
         }
     }

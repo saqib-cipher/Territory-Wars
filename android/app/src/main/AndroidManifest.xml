@@ -82,6 +82,15 @@
             android:name="glab.guesscard.activities.WinnerActivity"
             android:exported="false" />
 
+        <activity
+            android:name="glab.guesscard.activities.FriendsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="glab.guesscard.activities.PublicProfileActivity"
+            android:exported="false" />
+
         <!-- Google Mobile Ads application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

@@ -17,7 +17,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -174,6 +176,173 @@ public class FirebaseManager {
     /** Create/update a game room in /rooms/{roomId}/ */
     public DatabaseReference getRoomRef(String roomId) {
         return database.child("rooms").child(roomId);
+    }
+
+    /** Save match result to /users/{uid}/gameHistory/ */
+    public void saveGameHistory(String uid, String mode, int score, boolean won, String cardGuessed) {
+        if (uid == null) return;
+        DatabaseReference ref = database.child("users").child(uid).child("gameHistory").push();
+        Map<String, Object> item = new HashMap<>();
+        item.put("mode", mode);
+        item.put("score", score);
+        item.put("won", won);
+        item.put("cardGuessed", cardGuessed != null ? cardGuessed : "");
+        item.put("timestamp", ServerValue.TIMESTAMP);
+        ref.setValue(item);
+    }
+
+    /** Retrieve past game history for user. */
+    public void getGameHistory(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        database.child("users").child(uid).child("gameHistory")
+                .orderByChild("timestamp")
+                .limitToLast(20)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        List<Map<String, Object>> history = new ArrayList<>();
+                        for (DataSnapshot child : snapshot.getChildren()) {
+                            //noinspection unchecked
+                            Map<String, Object> val = (Map<String, Object>) child.getValue();
+                            if (val != null) history.add(0, val);
+                        }
+                        if (callback != null) callback.onResult(history);
+                    }
+                    @Override
+                    public void onCancelled(DatabaseError error) {
+                        if (callback != null) callback.onResult(new ArrayList<>());
+                    }
+                });
+    }
+
+    /** Add a friend under /users/{uid}/friends/{friendUid} */
+    public void addFriend(String uid, String friendUid) {
+        if (uid == null || friendUid == null) return;
+        database.child("users").child(uid).child("friends").child(friendUid).setValue(true);
+        database.child("users").child(friendUid).child("friends").child(uid).setValue(true);
+    }
+
+    /** Remove a friend */
+    public void removeFriend(String uid, String friendUid) {
+        if (uid == null || friendUid == null) return;
+        database.child("users").child(uid).child("friends").child(friendUid).removeValue();
+        database.child("users").child(friendUid).child("friends").child(uid).removeValue();
+    }
+
+    /** Get user's friend list with profiles */
+    public void getFriends(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        database.child("users").child(uid).child("friends").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                List<String> friendUids = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    friendUids.add(child.getKey());
+                }
+                if (friendUids.isEmpty()) {
+                    if (callback != null) callback.onResult(new ArrayList<>());
+                    return;
+                }
+                List<Map<String, Object>> friendsProfiles = new ArrayList<>();
+                final int[] loaded = {0};
+                for (String fUid : friendUids) {
+                    getUserProfile(fUid, profile -> {
+                        if (profile != null) friendsProfiles.add(profile);
+                        loaded[0]++;
+                        if (loaded[0] >= friendUids.size() && callback != null) {
+                            callback.onResult(friendsProfiles);
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                if (callback != null) callback.onResult(new ArrayList<>());
+            }
+        });
+    }
+
+    public interface InviteCallback {
+        void onInviteReceived(String roomId, String roomCode, String senderName);
+    }
+
+    /** Send room invitation to a friend */
+    public void sendRoomInvite(String friendUid, String roomId, String roomCode, String senderName) {
+        if (friendUid == null || roomId == null) return;
+        DatabaseReference ref = database.child("users").child(friendUid).child("invites").push();
+        Map<String, Object> invite = new HashMap<>();
+        invite.put("roomId", roomId);
+        invite.put("roomCode", roomCode != null ? roomCode : "");
+        invite.put("senderName", senderName != null ? senderName : "A Friend");
+        invite.put("timestamp", ServerValue.TIMESTAMP);
+        ref.setValue(invite);
+    }
+
+    /** Listen for real-time room invitations for current user */
+    public ValueEventListener listenForRoomInvites(String uid, InviteCallback callback) {
+        if (uid == null || callback == null) return null;
+        DatabaseReference ref = database.child("users").child(uid).child("invites");
+        ValueEventListener listener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    //noinspection unchecked
+                    Map<String, Object> val = (Map<String, Object>) child.getValue();
+                    if (val != null) {
+                        String rId = (String) val.get("roomId");
+                        String code = (String) val.get("roomCode");
+                        String sender = (String) val.get("senderName");
+                        callback.onInviteReceived(rId, code, sender);
+                        child.getRef().removeValue();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {}
+        };
+        ref.addValueEventListener(listener);
+        return listener;
+    }
+
+    /** Search users by UID or Username */
+    public void searchUsers(String query, DataCallback<List<Map<String, Object>>> callback) {
+        if (query == null || query.trim().isEmpty()) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        String q = query.trim();
+        database.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                List<Map<String, Object>> results = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    //noinspection unchecked
+                    Map<String, Object> u = (Map<String, Object>) child.getValue();
+                    if (u != null) {
+                        String uid = (String) u.get("uid");
+                        String name = (String) u.get("displayName");
+                        if ((uid != null && uid.equalsIgnoreCase(q)) ||
+                            (name != null && name.toLowerCase().contains(q.toLowerCase()))) {
+                            results.add(u);
+                        }
+                    }
+                }
+                if (callback != null) callback.onResult(results);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                if (callback != null) callback.onResult(new ArrayList<>());
+            }
+        });
     }
 
     /** Set player presence in a room. */
