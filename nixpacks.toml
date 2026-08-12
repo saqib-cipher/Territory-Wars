@@ -1,0 +1,11 @@
+[providers]
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = ["cd server && npm install"]
+
+[start]
+cmd = "cd server && npm start"

@@ -6,15 +6,19 @@ const config = require('../config');
 const client = createClient({ url: config.redisUrl });
 
 client.on('error', (err) => {
-  console.error('Redis client error:', err);
+  console.warn('[redis] client warning:', err.message);
 });
 
-/** Idempotent connection; boot blocks so Redis is a hard dependency. */
+/** Idempotent connection with fallback for cloud deployment without Redis */
 async function connect() {
-  if (!client.isOpen) {
-    await client.connect();
+  try {
+    if (!client.isOpen) {
+      await client.connect();
+    }
+    console.log('[redis] connected');
+  } catch (err) {
+    console.warn('[redis] could not connect to Redis, continuing in standalone mode:', err.message);
   }
-  console.log('[redis] connected');
 }
 
 module.exports = { client, connect };

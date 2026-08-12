@@ -1,0 +1,14 @@
+{
+  "name": "guess-card-backend",
+  "version": "1.0.0",
+  "description": "Backend API and Socket.io server for Guess Card / Territory Wars",
+  "main": "server/src/index.js",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "cd server && npm run dev",
+    "build": "cd server && npm install"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

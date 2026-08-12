@@ -19,6 +19,8 @@ function createApp() {
   app.use(cors());
   app.use(express.json({ limit: '256kb' }));
 
+  app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+
   app.use(apiLimiter);
   app.use('/v1/auth', authLimiter);
 
