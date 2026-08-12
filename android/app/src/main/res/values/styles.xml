@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ShapeAppearance.TerritoryWars.Avatar" parent="ShapeAppearance.Material3.Corner.Full" />
+    <style name="TextAppearance.TerritoryWars.BodyLarge" parent="TextAppearance.Material3.BodyLarge" />
+    <style name="TextAppearance.TerritoryWars.LabelLarge" parent="TextAppearance.Material3.LabelLarge" />
+</resources>

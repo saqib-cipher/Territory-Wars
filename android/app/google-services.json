@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "678208985937",
+    "project_id": "guess-card-challange",
+    "storage_bucket": "guess-card-challange.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678208985937:android:16775c896038d1e1c55170",
+        "android_client_info": {
+          "package_name": "glab.guesscard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWpoKUNGXFjxRZeYYh69Czt-cb3-XsC5E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
