@@ -19,6 +19,7 @@ function createApp() {
   app.use(cors());
   app.use(express.json({ limit: '256kb' }));
 
+  app.get('/', (req, res) => res.json({ name: 'Guess Card API', status: 'ok', timestamp: new Date() }));
   app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
   app.use(apiLimiter);

@@ -81,11 +81,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed something">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/app.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/redis/client.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/redis/client.js" afterDir="false" />
-    </list>
+    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -440,7 +436,23 @@
       <option name="project" value="LOCAL" />
       <updated>1786562351836</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="fixed">
+      <option name="closed" value="true" />
+      <created>1786563706134</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1786563706134</updated>
+    </task>
+    <task id="LOCAL-00012" summary="fixed">
+      <option name="closed" value="true" />
+      <created>1786563999274</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1786563999274</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -461,7 +473,8 @@
     <MESSAGE value="added xsomething" />
     <MESSAGE value="avatar" />
     <MESSAGE value="fixed something" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed something" />
+    <MESSAGE value="fixed" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="play_dynamic_filters_status">

@@ -8,8 +8,6 @@ const redis = require('./redis/client');
 const config = require('./config');
 
 async function main() {
-  await redis.connect();
-
   const app = createApp();
   const server = http.createServer(app);
 
@@ -23,15 +21,25 @@ async function main() {
 
   configureSocket(io);
 
-  server.listen(config.port, () => {
-    console.log(`[territory-wars] API + sockets on ${config.baseUrl}`);
+  const port = process.env.PORT || config.port || 8080;
+
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`[territory-wars] API + sockets listening on 0.0.0.0:${port}`);
+    // Connect to Redis in background without blocking HTTP server boot
+    redis.connect().catch((err) => {
+      console.warn('[redis] background connection warning:', err.message);
+    });
   });
 
   // graceful shutdown
   const shutdown = () => {
-    console.log('Shutting down\u2026');
+    console.log('Shutting down…');
     server.close(() => {
-      redis.client.quit().then(() => process.exit(0));
+      if (redis.client && redis.client.isOpen) {
+        redis.client.quit().then(() => process.exit(0)).catch(() => process.exit(0));
+      } else {
+        process.exit(0);
+      }
     });
   };
   process.on('SIGINT', shutdown);
