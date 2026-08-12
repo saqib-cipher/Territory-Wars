@@ -445,13 +445,11 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
     @Override
     public void onGameEnd(MatchResult result) {
         if (!isAdded()) return;
-        if (firebaseManager != null && preferences != null) {
-            firebaseManager.saveGameHistory(preferences.getUserId(), "ANIMALS", result.score, result.won, "");
-        }
         requireActivity().runOnUiThread(() -> {
             Intent intent = new Intent(requireContext(), WinnerActivity.class);
-            intent.putExtra("winnerName", "Winner");
-            intent.putExtra("finalScore", result.score);
+            intent.putExtra("winnerName", result != null && result.won ? "YOU" : "Opponent");
+            intent.putExtra("finalScore", result != null ? result.score : 100);
+            intent.putExtra("roomId", currentRoomId);
             startActivity(intent);
             requireActivity().finish();
         });

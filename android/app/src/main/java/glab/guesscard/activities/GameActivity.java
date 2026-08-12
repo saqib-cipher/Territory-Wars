@@ -35,7 +35,18 @@ public class GameActivity extends BaseActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (container() != null && container().getAudio() != null) {
+            container().getAudio().stopAllSounds();
+        }
+    }
+
+    @Override
     public void onBackPressed() {
+        if (container() != null && container().getAudio() != null) {
+            container().getAudio().stopAllSounds();
+        }
         super.onBackPressed();
         returnToMain();
     }

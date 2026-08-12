@@ -260,10 +260,12 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 for (DataSnapshot child : snapshot.getChildren()) {
                     String pUid = child.child("uid").getValue(String.class);
                     String name = child.child("displayName").getValue(String.class);
+                    String avatarFile = child.child("avatarFileName").getValue(String.class);
                     Boolean ready = child.child("ready").getValue(Boolean.class);
                     RoomInfo.LobbyPlayer p = new RoomInfo.LobbyPlayer();
                     p.userId = pUid;
                     p.username = name != null ? name : "Player";
+                    p.avatarFileName = avatarFile != null ? avatarFile : "avatar_01.png";
                     p.isReady = Boolean.TRUE.equals(ready);
                     list.add(p);
                 }
@@ -386,6 +388,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             RoomInfo.LobbyPlayer self = new RoomInfo.LobbyPlayer();
             self.userId = myUid;
             self.username = myName != null ? myName : "Player";
+            self.avatarFileName = prefs().getAvatarFileName();
             self.isReady = isLocallyReady;
             room.players.add(0, self);
         }

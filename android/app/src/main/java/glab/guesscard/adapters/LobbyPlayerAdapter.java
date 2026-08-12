@@ -49,7 +49,8 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
         holder.tvName.setText(name);
         holder.tvYouTag.setVisibility(isSelf ? View.VISIBLE : View.GONE);
 
-        String avatarFile = isSelf ? GuessCardApp.from(context).getPreferences().getAvatarFileName() : "avatar_01.png";
+        String avatarFile = u.avatarFileName != null && !u.avatarFileName.isEmpty() ? u.avatarFileName :
+                (isSelf ? GuessCardApp.from(context).getPreferences().getAvatarFileName() : "avatar_01.png");
         AvatarManager.getInstance().loadAvatarIntoImageView(context, holder.imgAvatar, avatarFile);
 
         holder.tvStatus.setText(u.isReady ? "READY" : "WAITING");

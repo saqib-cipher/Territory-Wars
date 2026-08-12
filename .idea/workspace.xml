@@ -81,7 +81,19 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed" />
+    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/AuthActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/AuthActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/SplashActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/SplashActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/audio/GameAudio.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/audio/GameAudio.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/models/RoomInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/models/RoomInfo.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -90,7 +102,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=10BF1Y0HGL006B5]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -460,7 +472,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786564343202</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="fixed">
+      <option name="closed" value="true" />
+      <created>1786564714535</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1786564714535</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

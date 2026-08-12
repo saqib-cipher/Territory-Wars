@@ -9,7 +9,7 @@ import glab.guesscard.R;
 
 /**
  * Victory / Final Results Activity for Guess the Card party game.
- * Shows trophy animation, winner avatar, score breakdown, and Play Again / Home buttons.
+ * Shows trophy animation, winner avatar, score breakdown, saves player history, and cleans up room on RTDB.
  */
 public class WinnerActivity extends BaseActivity {
 
@@ -20,6 +20,10 @@ public class WinnerActivity extends BaseActivity {
 
         String winnerName = getIntent().getStringExtra("winnerName");
         int finalScore = getIntent().getIntExtra("finalScore", 0);
+        String roomId = getIntent().getStringExtra("roomId");
+        String mode = getIntent().getStringExtra("mode");
+
+        if (winnerName == null || winnerName.isEmpty()) winnerName = "YOU";
 
         try {
             container().getAudio().playSound(glab.guesscard.audio.GameAudio.Sound.VICTORY);
@@ -28,12 +32,21 @@ public class WinnerActivity extends BaseActivity {
         TextView tvWinnerName = findViewById(R.id.tvWinnerName);
         TextView tvFinalScore = findViewById(R.id.tvFinalScore);
 
-        if (tvWinnerName != null && winnerName != null) {
-            tvWinnerName.setText(winnerName + " is the Winner!");
+        if (tvWinnerName != null) {
+            tvWinnerName.setText(winnerName + " is the Winner! 🎉");
         }
 
         if (tvFinalScore != null) {
             tvFinalScore.setText("Final Score: " + finalScore + " pts");
+        }
+
+        // Save history & clean up room on server
+        String uid = prefs().getUserId();
+        if (container() != null && container().getFirebaseManager() != null) {
+            container().getFirebaseManager().saveMatchHistory(uid, winnerName, finalScore, mode != null ? mode : "ANIMALS");
+            if (roomId != null && !roomId.isEmpty()) {
+                container().getFirebaseManager().deleteRoom(roomId);
+            }
         }
 
         findViewById(R.id.btnPlayAgain).setOnClickListener(v -> {

@@ -396,26 +396,92 @@ public class FirebaseManager {
             playerData.put("displayName", hostName != null ? hostName : "Player");
             playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
             playerData.put("joinedAt", ServerValue.TIMESTAMP);
-            playerData.put("ready", false);
-            roomRef.child("players").child(hostUid).setValue(playerData);
         }
     }
 
-    /** Save user's selected avatarIndex in /users/{uid}/avatarIndex */
-    public void updateUserAvatar(String uid, int avatarIndex) {
-        if (uid == null) return;
-        database.child("users").child(uid).child("avatarIndex").setValue(avatarIndex);
+    /** Sync user profile & avatar from Firebase RTDB upon re-login */
+    public void syncUserProfileOnLogin(String uid, glab.guesscard.network.PreferenceManager prefs, Runnable onComplete) {
+        if (uid == null) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
+        database.child("users").child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String name = snapshot.child("displayName").getValue(String.class);
+                    String avatarFile = snapshot.child("avatarFileName").getValue(String.class);
+                    if (name != null && !name.isEmpty()) prefs.saveUsername(name);
+                    if (avatarFile != null && !avatarFile.isEmpty()) prefs.saveAvatarFileName(avatarFile);
+                }
+                if (onComplete != null) onComplete.run();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (onComplete != null) onComplete.run();
+            }
+        });
     }
 
-    /** Set player presence in a room with avatarIndex. */
-    public void joinRoom(String roomId, String uid, String displayName, int avatarIndex) {
+    /** Create or reuse a host-UID room so new orphan nodes aren't created every time */
+    public void getOrCreateHostRoom(String hostUid, String hostName, String avatarFileName, String mode, DataCallback<String> callback) {
+        if (hostUid == null || hostUid.isEmpty()) {
+            hostUid = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+        }
+        final String roomId = hostUid;
+        DatabaseReference roomRef = database.child("rooms").child(roomId);
+        String code = String.valueOf(100000 + Math.abs(roomId.hashCode() % 900000));
+
+        Map<String, Object> roomData = new HashMap<>();
+        roomData.put("roomId", roomId);
+        roomData.put("code", code);
+        roomData.put("mode", mode != null ? mode : "ANIMALS");
+        roomData.put("hostUid", hostUid);
+        roomData.put("status", "LOBBY");
+        roomData.put("createdAt", ServerValue.TIMESTAMP);
+        roomRef.updateChildren(roomData);
+
         Map<String, Object> playerData = new HashMap<>();
-        playerData.put("uid", uid);
-        playerData.put("displayName", displayName);
-        playerData.put("avatarIndex", avatarIndex);
+        playerData.put("uid", hostUid);
+        playerData.put("displayName", hostName != null ? hostName : "Player");
+        playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
         playerData.put("joinedAt", ServerValue.TIMESTAMP);
         playerData.put("ready", false);
-        database.child("rooms").child(roomId).child("players").child(uid).setValue(playerData);
+        roomRef.child("players").child(hostUid).setValue(playerData);
+
+        if (callback != null) callback.onResult(roomId);
+    }
+
+    /** Delete completed room from Firebase RTDB */
+    public void deleteRoom(String roomId) {
+        if (roomId == null) return;
+        database.child("rooms").child(roomId).removeValue();
+    }
+
+    /** Save match result and player stats in Firebase RTDB */
+    public void saveMatchHistory(String uid, String winnerName, int score, String mode) {
+        if (uid == null) return;
+        DatabaseReference userRef = database.child("users").child(uid);
+        Map<String, Object> match = new HashMap<>();
+        match.put("winnerName", winnerName);
+        match.put("score", score);
+        match.put("mode", mode);
+        match.put("timestamp", ServerValue.TIMESTAMP);
+        userRef.child("history").push().setValue(match);
+
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                long played = snapshot.child("gamesPlayed").exists() ? snapshot.child("gamesPlayed").getValue(Long.class) : 0;
+                long won = snapshot.child("gamesWon").exists() ? snapshot.child("gamesWon").getValue(Long.class) : 0;
+                userRef.child("gamesPlayed").setValue(played + 1);
+                if (winnerName != null && winnerName.contains("YOU")) {
+                    userRef.child("gamesWon").setValue(won + 1);
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     /** Remove player from room. */

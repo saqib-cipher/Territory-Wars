@@ -36,6 +36,7 @@ public class RoomInfo {
         public String userId;
         public String username;
         public String avatarId;
+        public String avatarFileName;
         public boolean isReady;
         public boolean isHost;
         public int score;

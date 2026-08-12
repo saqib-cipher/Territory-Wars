@@ -104,6 +104,13 @@ public class GameAudio {
         }
     }
 
+    public void stopAllSounds() {
+        try {
+            soundPool.autoPause();
+        } catch (Exception ignored) {
+        }
+    }
+
     public void release() {
         try {
             soundPool.release();
