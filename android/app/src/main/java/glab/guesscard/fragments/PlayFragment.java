@@ -74,26 +74,46 @@ public class PlayFragment extends Fragment {
     }
 
     private void performQuickMatch() {
-        // Quick match: create a room on the socket server. Other players can join.
-        launchRandomLobby();
+        Toast.makeText(requireContext(), "Searching for available public room...", Toast.LENGTH_SHORT).show();
+        GuessCardApp.from(requireContext()).getFirebaseManager().findOpenRoomByMode(null, (roomId, roomCode, mode) -> {
+            if (getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                if (roomCode != null && !roomCode.isEmpty()) {
+                    Toast.makeText(requireContext(), "Joining public room...", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(requireContext(), LobbyActivity.class);
+                    intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
+                    if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(requireContext(), "No open room found. Creating new room...", Toast.LENGTH_SHORT).show();
+                    launchRandomLobby();
+                }
+            });
+        });
     }
 
     private void launchRandomLobby() {
         GameMode[] modes = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
         GameMode randomMode = modes[new Random().nextInt(modes.length)];
+        String newRoomId = String.valueOf(100000 + new Random().nextInt(900000));
+        String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
+        String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
+        String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
 
-        // Socket.IO server will create a persistent room using host UID
+        GuessCardApp.from(requireContext()).getFirebaseManager()
+                .createRoomOnFirebase(newRoomId, randomMode.name(), uid, name, avatarFile);
+
         Intent intent = new Intent(requireContext(), LobbyActivity.class);
         intent.putExtra(LobbyActivity.EXTRA_MODE, randomMode.name());
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, newRoomId);
         startActivity(intent);
     }
 
     private void showJoinDialog() {
         android.widget.EditText input = new android.widget.EditText(requireContext());
-        input.setHint("Enter room code (e.g. ABC12)");
+        input.setHint("6-digit numeric room code");
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Join Room by Code")
-                .setMessage("Enter the 5-character room code shared by the host.")
+                .setTitle("Join Room")
                 .setView(input)
                 .setPositiveButton("Join", (dialog, which) -> {
                     String code = input.getText().toString().trim();

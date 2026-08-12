@@ -108,44 +108,13 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Sync avatar and username from preferences (refreshed on re-login)
         if (getView() != null) {
             GameContainer container = glab.guesscard.GuessCardApp.from(requireContext());
             ImageView avatarView = getView().findViewById(R.id.profileAvatar);
             String avatarFile = container.getPreferences().getAvatarFileName();
-            if (avatarFile != null && !avatarFile.isEmpty()) {
-                glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, avatarFile);
-            }
-            
+            glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, avatarFile);
             TextView username = getView().findViewById(R.id.profileUsername);
-            String name = container.getPreferences().getUsername();
-            if (username != null && name != null) {
-                username.setText(name);
-            }
-            
-            // Sync from Firebase if online
-            com.google.firebase.auth.FirebaseUser fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-            if (fbUser != null && !fbUser.isAnonymous()) {
-                container.getFirebaseManager().getUserProfile(fbUser.getUid(), profile -> {
-                    if (profile != null && getActivity() != null && isAdded()) {
-                        requireActivity().runOnUiThread(() -> {
-                            String fbName = (String) profile.get("displayName");
-                            Object avatarIdx = profile.get("avatarIndex");
-                            if (fbName != null && !fbName.isEmpty()) {
-                                container.getPreferences().saveUsername(fbName);
-                                if (username != null) username.setText(fbName);
-                            }
-                            if (avatarIdx != null) {
-                                int idx = avatarIdx instanceof Long ? ((Long) avatarIdx).intValue() : (int) avatarIdx;
-                                container.getPreferences().saveAvatarIndex(idx);
-                                String file = "avatar_" + String.format("%02d", Math.max(1, Math.min(idx + 1, 20))) + ".png";
-                                container.getPreferences().saveAvatarFileName(file);
-                                glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, file);
-                            }
-                        });
-                    }
-                });
-            }
+            if (username != null) username.setText(container.getPreferences().getUsername());
         }
     }
 

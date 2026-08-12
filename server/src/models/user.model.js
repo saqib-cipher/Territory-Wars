@@ -7,8 +7,7 @@ function toPublic(row) {
   return {
     id: row.id,
     username: row.username,
-    avatarId: row.avatar_id || 'default',
-    avatarFileName: row.avatar_id || 'avatar_01.png',
+    avatarId: row.avatar_id,
     isGuest: row.is_guest,
     coins: row.coins,
     gems: row.gems,
@@ -20,15 +19,6 @@ function toPublic(row) {
 }
 
 const mask = `id, username, avatar_id, is_guest, coins, gems, xp, level, trophies, is_premium, premium_until`;
-
-/** Returns full profile including avatar for sync */
-async function getFullProfile(id) {
-  const { rows } = await query(
-    `SELECT ${mask} FROM users WHERE id = $1`,
-    [id]
-  );
-  return rows[0] ? toPublic(rows[0]) : null;
-}
 
 async function findById(id) {
   const { rows } = await query(`SELECT ${mask} FROM users WHERE id = $1`, [id]);
@@ -79,4 +69,4 @@ async function createGoogleUser({ firebaseUid, username, avatarId }) {
   return toPublic(rows[0]);
 }
 
-module.exports = { findById, findByUsername, findByFirebaseUid, createGuest, createGoogleUser, getFullProfile, toPublic };
+module.exports = { findById, findByUsername, findByFirebaseUid, createGuest, createGoogleUser, toPublic };

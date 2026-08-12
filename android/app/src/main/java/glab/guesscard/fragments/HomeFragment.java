@@ -100,11 +100,28 @@ public class HomeFragment extends Fragment {
                 card.setBackground(card.getBackground().mutate());
             }
             card.setOnClickListener(v -> {
-                // Socket.IO server handles room creation with host UID as persistent key.
-                // No need to pre-create Firebase rooms — the lobby connects to socket server directly.
-                Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
-                startActivity(intent);
+                Toast.makeText(requireContext(), "Checking available " + mode.name() + " rooms...", Toast.LENGTH_SHORT).show();
+                glab.guesscard.GuessCardApp.from(requireContext()).getFirebaseManager().findOpenRoomByMode(mode.name(), (roomId, roomCode, foundMode) -> {
+                    if (getActivity() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
+                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
+                        if (roomCode != null && !roomCode.isEmpty()) {
+                            Toast.makeText(requireContext(), "Joining public " + mode.name() + " room...", Toast.LENGTH_SHORT).show();
+                            intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
+                        } else {
+                            String newRoomId = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+                            PreferenceManager p = glab.guesscard.GuessCardApp.from(requireContext()).getPreferences();
+                            String uid = p.getUserId();
+                            String name = p.getUsername();
+                            String avatarFile = p.getAvatarFileName();
+                            glab.guesscard.GuessCardApp.from(requireContext()).getFirebaseManager()
+                                    .createRoomOnFirebase(newRoomId, mode.name(), uid, name, avatarFile);
+                            intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, newRoomId);
+                        }
+                        startActivity(intent);
+                    });
+                });
             });
         }
     }

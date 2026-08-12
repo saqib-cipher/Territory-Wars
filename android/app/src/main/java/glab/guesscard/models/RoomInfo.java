@@ -9,7 +9,6 @@ import java.util.List;
 public class RoomInfo {
     public String roomId;
     public String code;
-    public String uniqueCode;
     public String mode;
     public String hostId;
     public int maxPlayers = 5;
@@ -19,7 +18,6 @@ public class RoomInfo {
     public int currentRound = 1;
     public int totalRounds = 5;
     public String card;
-    public String cardCategory;
     public boolean isGuesser;
     public int questionsRemaining = 10;
     public List<QuestionItem> questionHistory = new ArrayList<>();
@@ -49,7 +47,6 @@ public class RoomInfo {
 
         r.roomId = json.optString("roomId");
         r.code = json.optString("code", r.roomId);
-        r.uniqueCode = json.optString("uniqueCode", r.code);
         r.mode = json.optString("mode", "ANIMALS");
         r.hostId = json.optString("hostId");
         r.maxPlayers = json.optInt("maxPlayers", 5);
@@ -59,7 +56,6 @@ public class RoomInfo {
         r.currentRound = json.optInt("currentRound", 1);
         r.totalRounds = json.optInt("totalRounds", 5);
         r.card = json.optString("card", null);
-        r.cardCategory = json.optString("cardCategory", "");
         r.isGuesser = json.optBoolean("isGuesser", false);
         r.questionsRemaining = json.optInt("questionsRemaining", 10);
 

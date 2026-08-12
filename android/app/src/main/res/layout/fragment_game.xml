@@ -75,9 +75,9 @@
 
         </LinearLayout>
 
-        <!-- ── VOICE CHAT & MUTE CONTROLS BAR (online only) ── -->
+        <!-- ── VOICE CHAT & MUTE CONTROLS BAR ── -->
         <LinearLayout
-            android:id="@+id/chatContainer"
+            android:id="@+id/voiceControlsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -99,14 +99,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:layout_marginEnd="6dp"
-                android:text="🎤 Mic On"
+                android:text="Mic On"
                 android:textSize="11sp" />
 
             <glab.guesscard.ModernFButton
                 android:id="@+id/btnMuteOthers"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
-                android:text="🔊 Audio On"
+                android:text="Audio On"
                 android:textSize="11sp" />
 
         </LinearLayout>
@@ -189,18 +189,6 @@
             android:nestedScrollingEnabled="true"
             android:layout_marginBottom="12dp" />
 
-        <!-- ── CARD REVEAL TEXT ── -->
-        <TextView
-            android:id="@+id/tvCardReveal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:padding="8dp"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:visibility="gone"
-            android:layout_marginBottom="8dp" />
-
         <!-- ── ANSWER BUTTONS (YES / NO only) ── -->
         <LinearLayout
             android:id="@+id/answerButtonContainer"
@@ -216,7 +204,7 @@
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
-                android:text="YES 👍" />
+                android:text="YES" />
 
             <glab.guesscard.ModernFButton
                 android:id="@+id/btnAnswerNo"
@@ -224,36 +212,16 @@
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
-                android:text="NO 👎" />
+                android:text="NO" />
 
         </LinearLayout>
 
-        <!-- Pass Turn + Guess Buttons Row -->
-        <LinearLayout
+        <!-- Large GUESS Button for guessing player -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnGuess"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnPassTurn"
-                android:layout_width="0dp"
-                android:layout_height="52dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:text="PASS TURN"
-                android:visibility="gone" />
-
-            <!-- Large GUESS Button for guessing player -->
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnGuess"
-                android:layout_width="0dp"
-                android:layout_height="52dp"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:text="GUESS THE CARD" />
-
-        </LinearLayout>
+            android:layout_height="56dp"
+            android:text="GUESS THE CARD" />
 
     </LinearLayout>
 </ScrollView>
