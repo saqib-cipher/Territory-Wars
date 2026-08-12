@@ -2,36 +2,33 @@
 
 const jwt = require('../utils/jwt');
 const userService = require('../models/user.model');
-const { RoomManager, GAME_DURATION_MS } = require('../matchmaking/roomManager');
+const { RoomManager } = require('../matchmaking/roomManager');
 
 /**
- * Configures Socket.IO with an authenticated handshake and the real-time room
- * + game event surface:
- *   connect, disconnect, joinRoom, leaveRoom, playerMove, captureTile,
- *   powerupCollected, chatMessage, gameStart, gameEnd, scoreUpdate.
- *
- * The server records capture events so scoring/final standings are
- * authoritative (anti-cheat anchor), while position echoes are latency-tolerant.
+ * Real-time Socket.IO handler for Guess the Card party game:
+ * - Room creation/joining (2-5 players)
+ * - Server-authoritative role-aware card broadcasting
+ * - Question asking and YES/NO/MAYBE answering
+ * - Authoritative guess submission and scoring
+ * - Turn and round progression
  */
 function configureSocket(io) {
   const rooms = new RoomManager();
-  const roomScores = new Map(); // roomId -> Map(userId -> {score,tiles})
 
   io.on('connection', (socket) => {
-    handleConnection(io, socket, rooms, roomScores);
+    handleConnection(io, socket, rooms);
   });
 
   return io;
 }
 
-function handleConnection(io, socket, rooms, roomScores) {
-  // ---- auth handshake ----
+function handleConnection(io, socket, rooms) {
   authenticate(socket, (user) => {
-    if (!user) return; // disconnected in authenticate
+    if (!user) return;
 
-    // ---- room lifecycle ----
-    socket.on('createRoom', (mode, mapId) => {
-      const room = rooms.createRoom(user, mode, mapId);
+    // ---- Room Management ----
+    socket.on('createRoom', (mode, customConfig) => {
+      const room = rooms.createRoom(user, mode, customConfig);
       socket.join(room.roomId);
       socket.data.roomId = room.roomId;
       socket.emit('roomJoined', rooms.toPublic(room, user.id));
@@ -44,22 +41,25 @@ function handleConnection(io, socket, rooms, roomScores) {
         return;
       }
       if (!rooms.join(room, user)) {
-        socket.emit('roomError', { message: 'Unable to join room' });
+        socket.emit('roomError', { message: 'Unable to join room (full or in progress)' });
         return;
       }
       socket.join(room.roomId);
       socket.data.roomId = room.roomId;
       socket.emit('roomJoined', rooms.toPublic(room, user.id));
-      broadcast(io, room.roomId, 'roomUpdate', rooms.toPublic(room, user.id));
+      broadcastRoomState(io, room, rooms);
     });
 
     socket.on('joinRoom', (roomId) => {
       const room = rooms.findById(roomId);
-      if (!room || !rooms.join(room, user)) return;
+      if (!room || !rooms.join(room, user)) {
+        socket.emit('roomError', { message: 'Cannot join room' });
+        return;
+      }
       socket.join(room.roomId);
       socket.data.roomId = room.roomId;
       socket.emit('roomJoined', rooms.toPublic(room, user.id));
-      broadcast(io, room.roomId, 'roomUpdate', rooms.toPublic(room, user.id));
+      broadcastRoomState(io, room, rooms);
     });
 
     socket.on('leaveRoom', () => leaveRoom(socket, rooms, io));
@@ -68,28 +68,27 @@ function handleConnection(io, socket, rooms, roomScores) {
       const room = rooms.findById(socket.data.roomId);
       if (!room) return;
       rooms.setReady(room, user.id, !!ready);
-      broadcast(io, room.roomId, 'roomUpdate', rooms.toPublic(room, user.id));
+      broadcastRoomState(io, room, rooms);
 
       const started = rooms.maybeStart(room);
       if (started) {
-        const payload = {
-          mapId: started.mapId,
-          mode: started.mode,
-          durationMillis: GAME_DURATION_MS,
-          startedAt: Date.now(),
-        };
-        broadcast(io, room.roomId, 'gameStart', payload);
-        runMatchLoop(io, room, roomScores);
+        broadcastRoomState(io, room, rooms);
+        broadcastToRoom(io, room.roomId, 'gameStart', {
+          roomId: room.roomId,
+          mode: room.mode,
+          totalRounds: room.totalRounds,
+          currentTurnPlayerId: room.currentTurnPlayerId,
+        });
       }
     });
 
-    // ---- chat ----
+    // ---- Chat ----
     socket.on('chatMessage', (roomId, text) => {
       if (typeof text !== 'string') return;
       const clipped = text.slice(0, 256);
       const room = rooms.findById(roomId) || rooms.findById(socket.data.roomId);
       if (!room) return;
-      broadcast(io, room.roomId, 'chatMessage', {
+      broadcastToRoom(io, room.roomId, 'chatMessage', {
         from: user.id,
         username: user.username,
         text: clipped,
@@ -98,45 +97,72 @@ function handleConnection(io, socket, rooms, roomScores) {
       });
     });
 
-    // ---- in-game ----
-    socket.on('playerMove', (data) => {
+    // ---- Gameplay Events ----
+    socket.on('askQuestion', (questionText) => {
       const room = rooms.findById(socket.data.roomId);
       if (!room || !room.startedAt) return;
-      if (!data || typeof data.x !== 'number' || typeof data.y !== 'number') return;
-      broadcast(io, room.roomId, 'playerMove', {
-        userId: user.id,
-        x: data.x,
-        y: data.y,
-        vx: data.vx || 0,
-        vy: data.vy || 0,
-      });
+      if (typeof questionText !== 'string' || questionText.trim().length === 0) return;
+
+      const success = rooms.askQuestion(room, questionText.trim(), user.id);
+      if (success) {
+        broadcastRoomState(io, room, rooms);
+        broadcastToRoom(io, room.roomId, 'questionAsked', {
+          askedBy: user.id,
+          question: questionText.trim(),
+          questionsRemaining: room.questionsRemaining,
+        });
+      }
     });
 
-    socket.on('captureTile', (data) => {
+    socket.on('answerQuestion', (answerText) => {
       const room = rooms.findById(socket.data.roomId);
       if (!room || !room.startedAt) return;
-      const tx = Math.round(Number(data?.tx));
-      const ty = Math.round(Number(data?.ty));
-      if (!roomInBounds(tx, ty)) return;
+      // Only the card holder answers
+      if (room.currentTurnPlayerId !== user.id) return;
 
-      // authoritative per-user scoring
-      const scores = roomScores.get(room.roomId) || new Map();
-      const entry = scores.get(user.id) || { score: 0, tiles: 0 };
-      entry.score += 10;
-      entry.tiles += 1;
-      scores.set(user.id, entry);
-      roomScores.set(room.roomId, scores);
+      const normalizedAnswer = (answerText || '').toUpperCase();
+      if (!['YES', 'NO', 'MAYBE', 'NOT_SURE'].includes(normalizedAnswer)) return;
 
-      broadcast(io, room.roomId, 'captureTile', { userId: user.id, tx, ty });
+      const success = rooms.answerQuestion(room, normalizedAnswer);
+      if (success) {
+        broadcastRoomState(io, room, rooms);
+        broadcastToRoom(io, room.roomId, 'questionAnswered', {
+          answer: normalizedAnswer,
+          questionsRemaining: room.questionsRemaining,
+        });
+      }
     });
 
-    socket.on('powerupCollected', (data) => {
+    socket.on('submitGuess', (guessText) => {
       const room = rooms.findById(socket.data.roomId);
-      if (!room) return;
-      broadcast(io, room.roomId, 'powerupCollected', {
-        userId: user.id,
-        powerupId: String(data?.powerupId || ''),
+      if (!room || !room.startedAt) return;
+      if (room.currentTurnPlayerId !== user.id) return;
+
+      const result = rooms.submitGuess(room, user.id, String(guessText || ''));
+
+      broadcastToRoom(io, room.roomId, 'guessResult', {
+        guessedBy: user.id,
+        guess: guessText,
+        isCorrect: result.isCorrect,
+        scoreAwarded: result.scoreAwarded,
+        cardAnswer: result.cardAnswer,
       });
+
+      if (result.isCorrect) {
+        // Advance to next turn after short delay
+        setTimeout(() => {
+          advanceOrEndGame(io, room, rooms);
+        }, 3000);
+      } else {
+        broadcastRoomState(io, room, rooms);
+      }
+    });
+
+    socket.on('passTurn', () => {
+      const room = rooms.findById(socket.data.roomId);
+      if (!room || !room.startedAt) return;
+      if (room.currentTurnPlayerId !== user.id) return;
+      advanceOrEndGame(io, room, rooms);
     });
 
     socket.on('disconnect', () => {
@@ -147,9 +173,65 @@ function handleConnection(io, socket, rooms, roomScores) {
   });
 }
 
-// ---- helpers ----
+function advanceOrEndGame(io, room, rooms) {
+  room.currentTurnIndex += 1;
+  const playerList = [...room.players.values()];
 
-/** Last stage of the auth handshake; calls back with the fresh user row. */
+  if (room.currentRound >= room.totalRounds && room.currentTurnIndex >= playerList.length) {
+    // Game over - calculate winner
+    const standings = [...room.players.values()]
+      .map((p) => ({ userId: p.id, username: p.username, score: p.score || 0 }))
+      .sort((a, b) => b.score - a.score);
+
+    broadcastToRoom(io, room.roomId, 'gameEnd', {
+      roomId: room.roomId,
+      winner: standings[0] || null,
+      standings,
+    });
+    room.startedAt = null;
+  } else {
+    rooms.startNextTurn(room);
+    broadcastRoomState(io, room, rooms);
+    broadcastToRoom(io, room.roomId, 'turnStarted', {
+      currentTurnPlayerId: room.currentTurnPlayerId,
+      currentRound: room.currentRound,
+    });
+  }
+}
+
+function broadcastRoomState(io, room, rooms) {
+  // Role-aware broadcast: send masked state to guessing player, revealed state to clue givers
+  const sockets = io.sockets.adapter.rooms.get(room.roomId);
+  if (!sockets) return;
+
+  for (const socketId of sockets) {
+    const s = io.sockets.sockets.get(socketId);
+    if (s && s.data && s.data.user) {
+      s.emit('roomUpdate', rooms.toPublic(room, s.data.user.id));
+    }
+  }
+}
+
+function broadcastToRoom(io, roomId, event, payload) {
+  io.to(roomId).emit(event, payload);
+}
+
+function leaveRoom(socket, rooms, io) {
+  const roomId = socket.data.roomId;
+  if (!roomId) return;
+  const room = rooms.findById(roomId);
+  socket.data.roomId = null;
+  socket.leave(roomId);
+  if (!room) return;
+
+  const remaining = rooms.leave(room, socket.data.user.id);
+  if (remaining === 0) {
+    rooms.destroy(room);
+  } else {
+    broadcastRoomState(io, room, rooms);
+  }
+}
+
 function authenticate(socket, done) {
   const token = socket.handshake.auth && socket.handshake.auth.token;
   if (!token) {
@@ -175,76 +257,6 @@ function authenticate(socket, done) {
     socket.disconnect(true);
     done(null);
   }
-}
-
-function leaveRoom(socket, rooms, io) {
-  const roomId = socket.data.roomId;
-  if (!roomId) return;
-  const room = rooms.findById(roomId);
-  socket.data.roomId = null;
-  socket.leave(roomId);
-  if (!room) return;
-
-  const remaining = rooms.leave(room, socket.data.user.id);
-  if (remaining === 0) {
-    rooms.destroy(room);
-  } else {
-    broadcast(io, roomId, 'roomUpdate', rooms.toPublic(room, socket.data.user.id));
-  }
-}
-
-/** Runs the countdown: periodic scoreUpdate broadcast, then finalize. */
-function runMatchLoop(io, room, roomScores) {
-  const startedAt = room.startedAt;
-  const ticker = setInterval(() => {
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < GAME_DURATION_MS) {
-      broadcast(io, room.roomId, 'scoreUpdate', {
-        roomId: room.roomId,
-        elapsed,
-        remainingMs: GAME_DURATION_MS - elapsed,
-        leaderboard: computeScores(room, roomScores),
-      });
-    } else {
-      clearInterval(ticker);
-      finalizeMatch(io, room, roomScores);
-    }
-  }, 2000);
-  room.ticker = ticker;
-}
-
-/** Sorted leaderboard for the room with server-authoritative scores. */
-function computeScores(room, roomScores) {
-  const scores = roomScores.get(room.roomId) || new Map();
-  return [...room.players.values()]
-    .map((p) => {
-      const s = scores.get(p.id) || { score: 0, tiles: 0 };
-      return { userId: p.id, username: p.username, score: s.score, tiles: s.tiles };
-    })
-    .sort((a, b) => b.score - a.score)
-    .map((row, i) => ({ ...row, rank: i + 1 }));
-}
-
-/** Emits the authoritative match result and cleans up the room. */
-function finalizeMatch(io, room, roomScores) {
-  if (room.ticker) {
-    clearInterval(room.ticker);
-    room.ticker = null;
-  }
-  broadcast(io, room.roomId, 'gameEnd', {
-    roomId: room.roomId,
-    endedAt: Date.now(),
-    standings: computeScores(room, roomScores),
-  });
-}
-
-function broadcast(io, roomId, event, payload) {
-  io.to(roomId).emit(event, payload);
-}
-
-/** Loose bounds guard for capture tiles (map geometry is 64x48). */
-function roomInBounds(tx, ty) {
-  return tx >= 0 && ty >= 0 && tx < 64 && ty < 48;
 }
 
 module.exports = { configureSocket };

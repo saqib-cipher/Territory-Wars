@@ -2,53 +2,144 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_dark"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="20dp">
 
+    <!-- ── HEADER BANNER ── -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="@drawable/gradient_hero">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GAME LOBBY"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.12" />
+
+            <TextView
+                android:id="@+id/roomCodeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="A7K29"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2" />
+
+            <TextView
+                android:id="@+id/roomModeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Animals Mode (2-5 Players)"
+                android:textColor="#F59E0B"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- ── PLAYERS (2-5 DYNAMIC SLOTS) SECTION ── -->
     <TextView
-        android:id="@+id/roomCodeText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:text="Room: ----" />
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="Connected Players (2 - 5)"
+        android:textColor="#94A3B8"
+        android:textSize="12sp"
+        android:textAllCaps="true" />
 
+    <!-- Container for dynamic PlayerAvatarViews -->
+    <LinearLayout
+        android:id="@+id/playerAvatarContainer"
+        android:layout_width="match_parent"
+        android:layout_height="110dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp" />
+
+    <!-- RecyclerView for detailed player status list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/playersList"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="100dp"
+        android:layout_marginBottom="12dp" />
 
-    <EditText
-        android:id="@+id/chatInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Type message..." />
-
+    <!-- ── ACTION BUTTONS ── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
 
-        <com.territorywars.ModernFButton
-            android:id="@+id/sendChatButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Send" />
-
-        <com.territorywars.ModernFButton
+        <glab.guesscard.ModernFButton
             android:id="@+id/readyButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="Ready" />
+            android:layout_marginEnd="8dp"
+            android:text="I'm Ready ✓" />
 
-        <com.territorywars.ModernFButton
+        <glab.guesscard.ModernFButton
             android:id="@+id/leaveRoomButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="Leave" />
+            android:layout_marginStart="8dp"
+            android:text="Leave Room" />
+
+    </LinearLayout>
+
+    <!-- ── CHAT SECTION ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/chatList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/chatInput"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="#1E293B"
+                android:hint="Type room message..."
+                android:textColorHint="#64748B"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+
+            <glab.guesscard.ModernFButton
+                android:id="@+id/sendChatButton"
+                android:layout_width="80dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:text="Send" />
+
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

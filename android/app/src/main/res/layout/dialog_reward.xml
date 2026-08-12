@@ -30,7 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_16"
-        app:layout_constraintTop_toBottomOf="@id/rewardClaim"
+        app:layout_constraintTop_toBottomOf="@id/rewardAmount"
         android:text="@string/home_claim" />
 
     <Button

@@ -6,41 +6,41 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.territorywars.fragments.HomeFragment"
+        android:name="glab.guesscard.fragments.HomeFragment"
         android:label="@string/nav_home" />
 
     <fragment
         android:id="@+id/playFragment"
-        android:name="com.territorywars.fragments.PlayFragment"
+        android:name="glab.guesscard.fragments.PlayFragment"
         android:label="@string/nav_play" />
 
     <fragment
         android:id="@+id/friendsFragment"
-        android:name="com.territorywars.fragments.FriendsFragment"
+        android:name="glab.guesscard.fragments.FriendsFragment"
         android:label="@string/nav_friends" />
 
     <fragment
         android:id="@+id/leaderboardFragment"
-        android:name="com.territorywars.fragments.LeaderboardFragment"
+        android:name="glab.guesscard.fragments.LeaderboardFragment"
         android:label="@string/nav_leaderboard" />
 
     <fragment
         android:id="@+id/inventoryFragment"
-        android:name="com.territorywars.fragments.InventoryFragment"
+        android:name="glab.guesscard.fragments.InventoryFragment"
         android:label="@string/nav_inventory" />
 
     <fragment
         android:id="@+id/shopFragment"
-        android:name="com.territorywars.fragments.ShopFragment"
+        android:name="glab.guesscard.fragments.ShopFragment"
         android:label="@string/nav_shop" />
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.territorywars.fragments.ProfileFragment"
+        android:name="glab.guesscard.fragments.ProfileFragment"
         android:label="@string/nav_profile" />
 
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.territorywars.fragments.SettingsFragment"
+        android:name="glab.guesscard.fragments.SettingsFragment"
         android:label="@string/nav_settings" />
 </navigation>

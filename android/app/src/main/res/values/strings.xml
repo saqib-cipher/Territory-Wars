@@ -41,7 +41,7 @@
     <!-- Auth -->
     <string name="auth_login_guest">Play as Guest</string>
     <string name="auth_login_google">Continue with Google</string>
-    <string name="default_web_client_id" translatable="false">YOUR_GOOGLE_WEB_CLIENT_ID</string>
+    <string name="default_web_client_id" translatable="false">678208985937-mur6drmcvv3l3hikhnrsirp5sadh1vjr.apps.googleusercontent.com</string>
 
     <!-- Common -->
     <string name="common_close">Close</string>

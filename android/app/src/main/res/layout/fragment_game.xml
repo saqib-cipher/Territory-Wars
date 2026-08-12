@@ -1,60 +1,189 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.territorywars.game.view.GameView
-        android:id="@+id/gameView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:fillViewport="true">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:padding="16dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/matchTimer"
-            android:layout_width="wrap_content"
+        <!-- ── TOP HUD BANNER ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:text="02:30" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
-        <TextView
-            android:id="@+id/scoreText"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvRoundIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ROUND 1 / 5"
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvCurrentPlayer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Your turn to guess!"
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <glab.guesscard.views.TimerView
+                android:id="@+id/timerView"
+                android:layout_width="72dp"
+                android:layout_height="72dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QUESTIONS LEFT"
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:id="@+id/tvQuestionsLeft"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10"
+                    android:textColor="#F59E0B"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ── DYNAMIC PLAYER BAR ── -->
+        <LinearLayout
+            android:id="@+id/gamePlayerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp" />
+
+        <!-- ── CENTER ANIMATED GAME CARD ── -->
+        <glab.guesscard.views.GameCardView
+            android:id="@+id/gameCardView"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ── QUICK CATEGORY QUESTIONS SECTION ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#FFD600"
-            android:textSize="16sp"
-            android:text="Tiles: 0" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:id="@+id/tvQuickQuestionsHeader"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Quick Questions"
+                android:textColor="#38BDF8"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1" />
+
+            <!-- Mic Voice Button (online guesser only) -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnVoiceQuestion"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:text="🎤"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:id="@+id/quickQuestionsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- ── QUESTION HISTORY LIST ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Q&amp;A History"
+            android:textColor="#64748B"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="4dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvQuestionHistory"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:nestedScrollingEnabled="true"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ── ANSWER BUTTONS (YES / NO only) ── -->
+        <LinearLayout
+            android:id="@+id/answerButtonContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnAnswerYes"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="YES 👍" />
+
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnAnswerNo"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="NO 👎" />
+
+        </LinearLayout>
+
+        <!-- Large GUESS Button for guessing player -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnGuess"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="🎯  GUESS THE CARD" />
+
     </LinearLayout>
-
-    <com.territorywars.game.view.MiniMapView
-        android:id="@+id/miniMap"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_gravity="bottom|start"
-        android:layout_margin="16dp" />
-
-    <com.territorywars.ModernFButton
-        android:id="@+id/pauseButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_margin="16dp"
-        android:text="Pause" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/scoreboardList"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="16dp" />
-
-</FrameLayout>
+</ScrollView>

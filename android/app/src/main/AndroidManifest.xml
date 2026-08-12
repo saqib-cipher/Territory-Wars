@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.territorywars">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Networking -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Voice to Text -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Ads -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
@@ -13,11 +17,14 @@
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
-        android:name="com.territorywars.TerritoryWarsApp"
+        android:name="glab.guesscard.GuessCardApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -27,8 +34,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TerritoryWars">
 
+<!--        <property-->
+<!--            android:name="android.adservices.AD_SERVICES_CONFIG"-->
+<!--            android:resource="@xml/gma_ad_services_config"-->
+<!--            tools:replace="android:resource" />-->
+
         <activity
-            android:name="com.territorywars.activities.SplashActivity"
+            android:name="glab.guesscard.activities.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.TerritoryWars.Splash">
             <intent-filter>
@@ -38,27 +50,37 @@
         </activity>
 
         <activity
-            android:name="com.territorywars.activities.AuthActivity"
+            android:name="glab.guesscard.activities.AuthActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name="com.territorywars.activities.MainActivity"
+            android:name="glab.guesscard.activities.MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name="com.territorywars.activities.LobbyActivity"
+            android:name="glab.guesscard.activities.LobbyActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name="com.territorywars.activities.GameActivity"
+            android:name="glab.guesscard.activities.GameActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:noHistory="true"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name="glab.guesscard.activities.CustomModeActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="glab.guesscard.activities.WinnerActivity"
+            android:exported="false" />
 
         <!-- Google Mobile Ads application ID -->
         <meta-data

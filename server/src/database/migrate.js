@@ -106,6 +106,26 @@ async function migrate() {
        unlocked_at timestamptz NOT NULL DEFAULT now(),
        PRIMARY KEY (user_id, achievement)
      )`,
+
+    `CREATE TABLE IF NOT EXISTS custom_modes (
+       id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+       owner_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       name           text NOT NULL,
+       description    text DEFAULT '',
+       question_limit integer NOT NULL DEFAULT 10,
+       round_time     integer NOT NULL DEFAULT 60,
+       max_players    integer NOT NULL DEFAULT 5,
+       created_at     timestamptz NOT NULL DEFAULT now()
+     )`,
+
+    `CREATE TABLE IF NOT EXISTS custom_cards (
+       id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+       mode_id     uuid NOT NULL REFERENCES custom_modes(id) ON DELETE CASCADE,
+       answer      text NOT NULL,
+       category    text DEFAULT 'Custom',
+       image_url   text DEFAULT '',
+       created_at  timestamptz NOT NULL DEFAULT now()
+     )`,
   ];
 
   for (const sql of statements) {

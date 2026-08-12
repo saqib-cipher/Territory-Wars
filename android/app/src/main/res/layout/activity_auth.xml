@@ -1,28 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center">
+    android:background="@drawable/gradient_hero">
 
-    <ProgressBar
-        android:id="@+id/authProgress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:layout_marginBottom="24dp" />
-
-    <com.territorywars.ModernFButton
-        android:id="@+id/loginGuestButton"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Play as Guest" />
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/loginGoogleButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Continue with Google" />
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="32dp">
+
+            <!-- ── LOGO / HERO ── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:text="🃏"
+                android:textSize="80sp"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="GUESS CARD"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Think. Ask. Guess the Card!"
+                android:textColor="#AAFFFFFF"
+                android:textSize="15sp"
+                android:gravity="center" />
+
+            <!-- ── SPACER ── -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="40dp" />
+
+            <!-- ── SUBTITLE ── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:text="Choose how to sign in"
+                android:textColor="#CCFFFFFF"
+                android:textSize="13sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.10"
+                android:gravity="center" />
+
+            <!-- ── PROGRESS BAR ── -->
+            <ProgressBar
+                android:id="@+id/authProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp" />
+
+            <!-- ── CONTINUE WITH GOOGLE ── -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/loginGoogleButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="14dp"
+                android:text="🔵  Continue with Google" />
+
+            <!-- ── PLAY AS GUEST (ANONYMOUS) ── -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/loginGuestButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="14dp"
+                android:text="👤  Play as Guest (Anonymous)" />
+
+            <!-- ── DIVIDER ── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="#44FFFFFF" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="or"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="13sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="#44FFFFFF" />
+
+            </LinearLayout>
+
+            <!-- ── PLAY OFFLINE ── -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/playOfflineButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="🤖  Play Offline (No account)" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Progress is not saved in offline mode. Online features require sign-in."
+                android:textColor="#66FFFFFF"
+                android:textSize="12sp"
+                android:gravity="center" />
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

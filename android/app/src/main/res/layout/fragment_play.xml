@@ -1,42 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center">
+    android:background="@color/bg_dark"
+    android:fillViewport="true">
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/quickMatchButton"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Quick Match" />
+        android:orientation="vertical"
+        android:padding="20dp">
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/rankedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Ranked Match" />
+        <!-- Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Play Guess Card"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp" />
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/createRoomButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Create Room" />
+        <!-- Sign-in hint (shown when not signed in) -->
+        <TextView
+            android:id="@+id/tvSignInHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔒 Sign in to unlock online modes"
+            android:textColor="#F59E0B"
+            android:textSize="13sp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone" />
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/joinRoomButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Join Room" />
+        <!-- ── ONLINE SECTION ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ONLINE"
+            android:textColor="#38BDF8"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="10dp" />
 
-    <com.territorywars.ModernFButton
-        android:id="@+id/offlineButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Offline Practice" />
-</LinearLayout>
+        <glab.guesscard.ModernFButton
+            android:id="@+id/quickMatchButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="⚡ Quick Match" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/rankedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="🏆 Ranked Match" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/createRoomButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="🚪 Create Private Room" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/joinRoomButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="24dp"
+            android:text="🔑 Join Room (Code)" />
+
+        <!-- ── OFFLINE SECTION ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OFFLINE"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="10dp" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/offlineButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="🤖 Practice Offline" />
+
+    </LinearLayout>
+</ScrollView>
