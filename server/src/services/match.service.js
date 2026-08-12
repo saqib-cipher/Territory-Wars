@@ -8,11 +8,8 @@ const WIN_COINS = 20;
 const WIN_TROPHIES = 5;
 
 /**
- * Applies XP/coin/trophy rewards for a reported match result.
- *
- * Idempotent per matchId: the participant row carries a primary key on
- * (match_id, user_id) and the user ledger is only incremented when the
- * participant row is first created (ON CONFLICT DO NOTHING).
+ * Apply XP/coin/trophy rewards for a single player in a match.
+ * Idempotent per matchId+userId — participant row is created once.
  */
 async function awardMatchRewards(userId, result) {
   const { matchId, won, rank } = result;
@@ -23,11 +20,13 @@ async function awardMatchRewards(userId, result) {
   const trophies = won ? WIN_TROPHIES : 0;
 
   return withTransaction(async (client) => {
-    // 1) match row (authoritative; created once)
+    // 1) match row — only create on first participant, update winner later
     await client.query(
-      `INSERT INTO matches (id, mode, winner_id)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (id) DO NOTHING`,
+      `INSERT INTO matches (id, mode, winner_id, ended_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (id) DO UPDATE
+         SET winner_id = CASE WHEN $3::uuid IS NOT NULL THEN $3::uuid ELSE matches.winner_id END,
+             ended_at = now()`,
       [matchId, result.mode || 'duel', won ? userId : null]
     );
 
@@ -65,4 +64,51 @@ async function awardMatchRewards(userId, result) {
   });
 }
 
-module.exports = { awardMatchRewards };
+/**
+ * Save a complete multiplayer match with all standings at once.
+ * This ensures the winner is correctly set regardless of promise ordering.
+ */
+async function saveMultiplayerMatch(matchId, mode, winnerId, standings) {
+  return withTransaction(async (client) => {
+    // Create match record with correct winner
+    await client.query(
+      `INSERT INTO matches (id, mode, winner_id, ended_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (id) DO UPDATE
+         SET winner_id = EXCLUDED.winner_id,
+             ended_at = now()`,
+      [matchId, mode, winnerId]
+    );
+
+    // Insert all participants
+    for (const entry of standings) {
+      const rankBonus = Math.max(0, 4 - (entry.rank || 0)) * 10;
+      const won = entry.userId === winnerId;
+      const xp = BASE_XP + (won ? WIN_XP + rankBonus : rankBonus);
+      const coins = Math.max(0, 6 - (entry.rank || 0)) * 8 + (won ? WIN_COINS : 0);
+      const trophies = won ? WIN_TROPHIES : 0;
+
+      await client.query(
+        `INSERT INTO match_participants
+           (match_id, user_id, score, xp_earned, coins_earned)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (match_id, user_id) DO NOTHING`,
+        [matchId, entry.userId, entry.score || 0, xp, coins]
+      );
+
+      await client.query(
+        `UPDATE users
+         SET xp = xp + $2,
+             coins = coins + $3,
+             trophies = trophies + $4,
+             level = GREATEST(level, floor((xp + $2) / 1000) + 1)
+         WHERE id = $1`,
+        [entry.userId, xp, coins, trophies]
+      );
+    }
+
+    return { matchId, mode, saved: standings.length };
+  });
+}
+
+module.exports = { awardMatchRewards, saveMultiplayerMatch };

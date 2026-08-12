@@ -2,15 +2,17 @@
 
 const jwt = require('../utils/jwt');
 const userService = require('../models/user.model');
+const matchService = require('../services/match.service');
 const { RoomManager } = require('../matchmaking/roomManager');
 
 /**
  * Real-time Socket.IO handler for Guess the Card party game:
- * - Room creation/joining (2-5 players)
+ * - Room creation/joining (2-5 players) with persistent host rooms
  * - Server-authoritative role-aware card broadcasting
  * - Question asking and YES/NO/MAYBE answering
  * - Authoritative guess submission and scoring
- * - Turn and round progression
+ * - Turn and round progression with position switching
+ * - Match history saving and room cleanup on game end
  */
 function configureSocket(io) {
   const rooms = new RoomManager();
@@ -32,6 +34,8 @@ function handleConnection(io, socket, rooms) {
       socket.join(room.roomId);
       socket.data.roomId = room.roomId;
       socket.emit('roomJoined', rooms.toPublic(room, user.id));
+      // Broadcast to all in room so the host's avatar/name updates
+      broadcastRoomState(io, room, rooms);
     });
 
     socket.on('joinRoomByCode', (code) => {
@@ -60,6 +64,12 @@ function handleConnection(io, socket, rooms) {
       socket.data.roomId = room.roomId;
       socket.emit('roomJoined', rooms.toPublic(room, user.id));
       broadcastRoomState(io, room, rooms);
+      // Notify others a new player joined
+      broadcastToRoom(io, room.roomId, 'playerJoined', {
+        userId: user.id,
+        username: user.username,
+        avatarId: user.avatarId || 'default',
+      });
     });
 
     socket.on('leaveRoom', () => leaveRoom(socket, rooms, io));
@@ -108,6 +118,7 @@ function handleConnection(io, socket, rooms) {
         broadcastRoomState(io, room, rooms);
         broadcastToRoom(io, room.roomId, 'questionAsked', {
           askedBy: user.id,
+          askedByName: user.username,
           question: questionText.trim(),
           questionsRemaining: room.questionsRemaining,
         });
@@ -142,10 +153,12 @@ function handleConnection(io, socket, rooms) {
 
       broadcastToRoom(io, room.roomId, 'guessResult', {
         guessedBy: user.id,
+        guessedByName: user.username,
         guess: guessText,
         isCorrect: result.isCorrect,
         scoreAwarded: result.scoreAwarded,
         cardAnswer: result.cardAnswer,
+        cardCategory: room.currentCard?.category || '',
       });
 
       if (result.isCorrect) {
@@ -178,16 +191,47 @@ function advanceOrEndGame(io, room, rooms) {
   const playerList = [...room.players.values()];
 
   if (room.currentRound >= room.totalRounds && room.currentTurnIndex >= playerList.length) {
-    // Game over - calculate winner
-    const standings = [...room.players.values()]
-      .map((p) => ({ userId: p.id, username: p.username, score: p.score || 0 }))
-      .sort((a, b) => b.score - a.score);
+    // Game over - calculate winner and save match history
+    const standings = rooms.getStandings(room);
+    const winner = standings[0] || null;
+
+    // Save match results for all players atomically
+    const matchId = `match_${room.roomId}_${Date.now()}`;
+    room.finishedAt = Date.now();
+
+    // Persist multiplayer match results
+    const standingsWithRank = standings.map((p, i) => ({
+      userId: p.userId,
+      score: p.score,
+      rank: i + 1,
+    }));
+
+    matchService.saveMultiplayerMatch(
+      matchId,
+      room.mode,
+      winner ? winner.userId : null,
+      standingsWithRank
+    ).then(() => {
+      console.log(`[match] ${matchId} saved for ${standings.length} players`);
+    }).catch((err) => {
+      console.error('[match] Failed to save multiplayer match:', err);
+    });
 
     broadcastToRoom(io, room.roomId, 'gameEnd', {
       roomId: room.roomId,
-      winner: standings[0] || null,
+      matchId,
+      winner,
       standings,
+      matchHistory: room.matchHistory,
+      mode: room.mode,
     });
+
+    // Schedule room cleanup after players have received the results
+    setTimeout(() => {
+      rooms.destroy(room);
+      console.log(`[room] ${room.roomId} cleaned up after game end`);
+    }, 30000);
+
     room.startedAt = null;
   } else {
     rooms.startNextTurn(room);
@@ -195,6 +239,8 @@ function advanceOrEndGame(io, room, rooms) {
     broadcastToRoom(io, room.roomId, 'turnStarted', {
       currentTurnPlayerId: room.currentTurnPlayerId,
       currentRound: room.currentRound,
+      // Announce position switch
+      switchedPositions: true,
     });
   }
 }
@@ -224,7 +270,17 @@ function leaveRoom(socket, rooms, io) {
   socket.leave(roomId);
   if (!room) return;
 
-  const remaining = rooms.leave(room, socket.data.user.id);
+  const userId = socket.data.user?.id;
+  const remaining = rooms.leave(room, userId);
+
+  // Notify others that this player left
+  if (userId) {
+    broadcastToRoom(io, room.roomId, 'playerLeft', {
+      userId,
+      username: socket.data.user?.username || 'Player',
+    });
+  }
+
   if (remaining === 0) {
     rooms.destroy(room);
   } else {
