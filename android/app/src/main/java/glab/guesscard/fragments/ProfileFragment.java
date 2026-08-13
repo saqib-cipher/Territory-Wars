@@ -108,13 +108,19 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (getView() != null) {
+        if (getView() != null && isAdded()) {
             GameContainer container = glab.guesscard.GuessCardApp.from(requireContext());
-            ImageView avatarView = getView().findViewById(R.id.profileAvatar);
-            String avatarFile = container.getPreferences().getAvatarFileName();
-            glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, avatarFile);
-            TextView username = getView().findViewById(R.id.profileUsername);
-            if (username != null) username.setText(container.getPreferences().getUsername());
+            String uid = container.getPreferences().getUserId();
+            container.getFirebaseManager().syncUserProfileOnLogin(uid, container.getPreferences(), () -> {
+                if (getActivity() == null || !isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    ImageView avatarView = getView().findViewById(R.id.profileAvatar);
+                    String avatarFile = container.getPreferences().getAvatarFileName();
+                    glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), avatarView, avatarFile);
+                    TextView username = getView().findViewById(R.id.profileUsername);
+                    if (username != null) username.setText(container.getPreferences().getUsername());
+                });
+            });
         }
     }
 

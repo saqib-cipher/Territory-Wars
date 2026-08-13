@@ -23,11 +23,17 @@ import java.util.List;
 
 public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.VH> {
     private final List<RoomInfo.LobbyPlayer> players = new ArrayList<>();
+    private String hostUid = "";
 
-    public void submitList(List<RoomInfo.LobbyPlayer> list) {
+    public void submitList(List<RoomInfo.LobbyPlayer> list, String hostUid) {
+        this.hostUid = hostUid != null ? hostUid : "";
         players.clear();
         if (list != null) players.addAll(list);
         notifyDataSetChanged();
+    }
+
+    public void submitList(List<RoomInfo.LobbyPlayer> list) {
+        submitList(list, "");
     }
 
     @NonNull
@@ -44,19 +50,30 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
         String currentUid = GuessCardApp.from(context).getPreferences().getUserId();
 
         boolean isSelf = u.userId != null && u.userId.equals(currentUid);
+        boolean isHost = u.isHost || (u.userId != null && u.userId.equals(hostUid));
         String name = u.username != null ? u.username : "Player";
 
         holder.tvName.setText(name);
         holder.tvYouTag.setVisibility(isSelf ? View.VISIBLE : View.GONE);
+        if (holder.tvHostTag != null) holder.tvHostTag.setVisibility(isHost ? View.VISIBLE : View.GONE);
 
         String avatarFile = u.avatarFileName != null && !u.avatarFileName.isEmpty() ? u.avatarFileName :
                 (isSelf ? GuessCardApp.from(context).getPreferences().getAvatarFileName() : "avatar_01.png");
         AvatarManager.getInstance().loadAvatarIntoImageView(context, holder.imgAvatar, avatarFile);
 
-        holder.tvStatus.setText(u.isReady ? "READY" : "WAITING");
-        holder.tvStatus.setTextColor(u.isReady ?
-                android.graphics.Color.parseColor("#10B981") :
-                android.graphics.Color.parseColor("#F59E0B"));
+        if (u.isLeft) {
+            holder.tvStatus.setText("LEFT / OFFLINE 🔴");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#EF4444"));
+        } else if (isHost) {
+            holder.tvStatus.setText("HOST 👑");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
+        } else if (u.isReady) {
+            holder.tvStatus.setText("READY 🟢");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
+        } else {
+            holder.tvStatus.setText("NOT READY 🟡");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
+        }
 
         if (isSelf) {
             holder.btnAddFriend.setVisibility(View.GONE);
@@ -84,7 +101,7 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
 
     static class VH extends RecyclerView.ViewHolder {
         ImageView imgAvatar;
-        TextView tvName, tvYouTag, tvLevel, tvStatus;
+        TextView tvName, tvYouTag, tvHostTag, tvLevel, tvStatus;
         ModernFButton btnAddFriend;
 
         VH(@NonNull View itemView) {
@@ -92,6 +109,7 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
             imgAvatar = itemView.findViewById(R.id.imgLobbyPlayerAvatar);
             tvName = itemView.findViewById(R.id.tvLobbyPlayerName);
             tvYouTag = itemView.findViewById(R.id.tvYouTag);
+            tvHostTag = itemView.findViewById(R.id.tvHostTag);
             tvLevel = itemView.findViewById(R.id.tvLobbyPlayerLevel);
             tvStatus = itemView.findViewById(R.id.tvLobbyPlayerStatus);
             btnAddFriend = itemView.findViewById(R.id.btnAddFriendInLobby);

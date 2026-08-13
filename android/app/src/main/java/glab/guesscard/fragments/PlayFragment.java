@@ -45,6 +45,7 @@ public class PlayFragment extends Fragment {
         TextView tvHint = view.findViewById(R.id.tvSignInHint);
         ModernFButton quickMatch = view.findViewById(R.id.quickMatchButton);
         ModernFButton createRoom = view.findViewById(R.id.createRoomButton);
+        ModernFButton btnCustom = view.findViewById(R.id.customModeButton);
         ModernFButton joinRoom = view.findViewById(R.id.joinRoomButton);
         ModernFButton offline = view.findViewById(R.id.offlineButton);
 
@@ -52,17 +53,53 @@ public class PlayFragment extends Fragment {
             if (tvHint != null) tvHint.setVisibility(View.VISIBLE);
             lockOnlineButton(quickMatch);
             lockOnlineButton(createRoom);
+            lockOnlineButton(btnCustom);
             lockOnlineButton(joinRoom);
         } else {
             if (tvHint != null) tvHint.setVisibility(View.GONE);
             if (quickMatch != null) quickMatch.setOnClickListener(v -> performQuickMatch());
-            if (createRoom != null) createRoom.setOnClickListener(v -> launchRandomLobby());
+            if (createRoom != null) createRoom.setOnClickListener(v -> showCreateRoomModeDialog());
+            if (btnCustom != null) btnCustom.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), glab.guesscard.activities.CustomModeActivity.class);
+                startActivity(intent);
+            });
             if (joinRoom != null) joinRoom.setOnClickListener(v -> showJoinDialog());
         }
 
         if (offline != null) {
             offline.setOnClickListener(v -> openGameOffline());
         }
+    }
+
+    private void showCreateRoomModeDialog() {
+        String[] modes = new String[]{"ANIMALS 🐾", "FOOD & DISHES 🍔", "COUNTRIES 🌍", "CELEBRITIES 🎬"};
+        final GameMode[] modeEnums = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Select Online Game Mode")
+                .setItems(modes, (dialog, which) -> {
+                    GameMode selectedMode = modeEnums[which];
+                    createHostRoomForMode(selectedMode);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void createHostRoomForMode(GameMode mode) {
+        String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
+        String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
+        String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
+
+        GuessCardApp.from(requireContext()).getFirebaseManager()
+                .getOrCreateHostRoom(uid, name, avatarFile, mode.name(), hostRoomId -> {
+                    if (getActivity() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
+                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, hostRoomId);
+                        startActivity(intent);
+                    });
+                });
     }
 
     private void lockOnlineButton(ModernFButton btn) {

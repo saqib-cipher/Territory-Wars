@@ -15,7 +15,7 @@
         <!-- ── HERO HEADER ── -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="180dp"
             android:background="@drawable/gradient_hero">
 
             <LinearLayout
@@ -23,7 +23,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -114,206 +114,54 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- ── ONLINE GAME MODES SECTION (Visible when online) ── -->
+        <!-- ── LIVE ACTIVE ROOMS SECTION (Visible when online) ── -->
         <LinearLayout
             android:id="@+id/onlineModesContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- ── LIVE ACTIVE ROOMS HEADER ── -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="12dp"
-                android:text="Choose Online Mode"
-                android:textColor="#94A3B8"
-                android:textSize="12sp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="10dp"
+                android:text="Live Active Game Rooms"
+                android:textColor="#38BDF8"
+                android:textSize="14sp"
                 android:textAllCaps="true"
-                android:letterSpacing="0.12" />
+                android:letterSpacing="0.12"
+                android:textStyle="bold" />
 
-            <!-- ── MODE CARDS GRID ── -->
-            <LinearLayout
+            <!-- Empty State for Active Rooms -->
+            <TextView
+                android:id="@+id/tvNoActiveRooms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/shape_glass_card"
+                android:padding="20dp"
+                android:text="No active public rooms right now.\nTap Create Room in Play section to start one!"
+                android:textColor="#94A3B8"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:visibility="gone" />
+
+            <!-- Active Rooms RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvActiveRooms"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp">
+                android:paddingEnd="16dp"
+                android:layout_marginBottom="16dp" />
 
-                <!-- Animals Mode Card -->
-                <FrameLayout
-                    android:id="@+id/modeAnimals"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/gradient_btn_multiplayer"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="ANIMALS (10 Questions)"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Play"
-                            android:textColor="#FFFFFFAA"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <!-- Food Mode Card -->
-                <FrameLayout
-                    android:id="@+id/modeFood"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/gradient_btn_offline"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp">
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="FOOD &amp; DISHES (8 Questions)"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Play"
-                            android:textColor="#FFFFFFAA"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <!-- Countries Mode Card -->
-                <FrameLayout
-                    android:id="@+id/modeCountries"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/gradient_btn_multiplayer"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp">
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="COUNTRIES (10 Questions)"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Play"
-                            android:textColor="#FFFFFFAA"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <!-- Celebrities Mode Card -->
-                <FrameLayout
-                    android:id="@+id/modeCelebrities"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/gradient_hero"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="CELEBRITIES (12 Questions)"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Play"
-                            android:textColor="#FFFFFFAA"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <!-- Custom Mode Creator Card -->
-                <FrameLayout
-                    android:id="@+id/modeCustom"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="16dp"
-                    android:background="@drawable/gradient_btn_offline"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp">
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="CUSTOM MODE CREATOR"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Create"
-                            android:textColor="#FFFFFFAA"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

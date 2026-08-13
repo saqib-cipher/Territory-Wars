@@ -63,45 +63,13 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- ── WAITING STATUS BANNER ── -->
-    <TextView
-        android:id="@+id/tvLobbyStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1E293B"
-        android:padding="10dp"
-        android:text="Waiting for other players to join (Need 2+ players)..."
-        android:textColor="#38BDF8"
-        android:textSize="12sp"
-        android:gravity="center" />
-
-    <!-- ── PLAYERS IN ROOM SECTION ── -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="4dp"
-        android:text="Connected Players (2 - 5)"
-        android:textColor="#94A3B8"
-        android:textSize="11sp"
-        android:textAllCaps="true"
-        android:letterSpacing="0.1" />
-
-    <!-- Container for dynamic PlayerAvatarViews -->
-    <LinearLayout
-        android:id="@+id/playerAvatarContainer"
-        android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="4dp" />
-
     <!-- RecyclerView for detailed player status list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/playersList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="8dp" />
 
     <!-- ── INVITE FRIENDS SECTION ── -->

@@ -51,6 +51,16 @@ public class FriendsActivity extends BaseActivity {
         ModernFButton btnSearch = findViewById(R.id.btnSearch);
         if (btnSearch != null) btnSearch.setOnClickListener(v -> performSearch());
 
+        if (etSearch != null) {
+            etSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    performSearch();
+                }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            });
+        }
+
         if (rvFriends != null) rvFriends.setLayoutManager(new LinearLayoutManager(this));
         if (rvSearch != null) rvSearch.setLayoutManager(new LinearLayoutManager(this));
 
@@ -76,15 +86,33 @@ public class FriendsActivity extends BaseActivity {
     private void performSearch() {
         if (etSearch == null) return;
         String query = etSearch.getText().toString().trim();
-        if (query.isEmpty()) return;
+        View tvMyFriendsHeader = findViewById(R.id.tvMyFriendsHeader);
+
+        if (query.isEmpty()) {
+            if (rvSearch != null) rvSearch.setVisibility(View.GONE);
+            if (tvSearchHeader != null) tvSearchHeader.setVisibility(View.GONE);
+            if (tvMyFriendsHeader != null) tvMyFriendsHeader.setVisibility(View.VISIBLE);
+            loadFriends();
+            return;
+        }
+
+        // Hide My Friends list section when searching
+        if (tvMyFriendsHeader != null) tvMyFriendsHeader.setVisibility(View.GONE);
+        if (tvNoFriends != null) tvNoFriends.setVisibility(View.GONE);
+        if (rvFriends != null) rvFriends.setVisibility(View.GONE);
 
         firebaseManager.searchUsers(query, list -> runOnUiThread(() -> {
             if (list == null || list.isEmpty()) {
-                Toast.makeText(this, "No users found for: " + query, Toast.LENGTH_SHORT).show();
                 if (rvSearch != null) rvSearch.setVisibility(View.GONE);
-                if (tvSearchHeader != null) tvSearchHeader.setVisibility(View.GONE);
+                if (tvSearchHeader != null) {
+                    tvSearchHeader.setVisibility(View.VISIBLE);
+                    tvSearchHeader.setText("No users found matching: '" + query + "'");
+                }
             } else {
-                if (tvSearchHeader != null) tvSearchHeader.setVisibility(View.VISIBLE);
+                if (tvSearchHeader != null) {
+                    tvSearchHeader.setVisibility(View.VISIBLE);
+                    tvSearchHeader.setText("Search Results (" + list.size() + " found)");
+                }
                 if (rvSearch != null) {
                     rvSearch.setVisibility(View.VISIBLE);
                     rvSearch.setAdapter(new FriendsAdapter(list, false));

@@ -59,6 +59,13 @@
             android:text="Create Room" />
 
         <glab.guesscard.ModernFButton
+            android:id="@+id/customModeButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="Custom Mode Creator" />
+
+        <glab.guesscard.ModernFButton
             android:id="@+id/joinRoomButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"

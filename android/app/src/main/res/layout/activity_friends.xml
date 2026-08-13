@@ -80,6 +80,7 @@
 
     <!-- MY FRIENDS LIST SECTION -->
     <TextView
+        android:id="@+id/tvMyFriendsHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="MY FRIENDS LIST"

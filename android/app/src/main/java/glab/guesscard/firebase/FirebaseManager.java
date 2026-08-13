@@ -319,21 +319,24 @@ public class FirebaseManager {
             if (callback != null) callback.onResult(new ArrayList<>());
             return;
         }
-        String q = query.trim();
+        String q = query.trim().toLowerCase();
         database.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 List<Map<String, Object>> results = new ArrayList<>();
                 for (DataSnapshot child : snapshot.getChildren()) {
-                    //noinspection unchecked
-                    Map<String, Object> u = (Map<String, Object>) child.getValue();
-                    if (u != null) {
-                        String uid = (String) u.get("uid");
-                        String name = (String) u.get("displayName");
-                        if ((uid != null && uid.equalsIgnoreCase(q)) ||
-                            (name != null && name.toLowerCase().contains(q.toLowerCase()))) {
-                            results.add(u);
-                        }
+                    String uid = child.getKey();
+                    String name = child.child("displayName").getValue(String.class);
+                    String avatar = child.child("avatarFileName").getValue(String.class);
+
+                    if ((uid != null && uid.toLowerCase().contains(q)) ||
+                        (name != null && name.toLowerCase().contains(q))) {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("uid", uid);
+                        map.put("displayName", name != null ? name : "Player");
+                        map.put("avatarFileName", avatar != null ? avatar : "avatar_01.png");
+                        map.put("status", "Online");
+                        results.add(map);
                     }
                 }
                 if (callback != null) callback.onResult(results);
@@ -396,6 +399,8 @@ public class FirebaseManager {
             playerData.put("displayName", hostName != null ? hostName : "Player");
             playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
             playerData.put("joinedAt", ServerValue.TIMESTAMP);
+            playerData.put("ready", false);
+            roomRef.child("players").child(hostUid).setValue(playerData);
         }
     }
 
@@ -424,33 +429,66 @@ public class FirebaseManager {
         });
     }
 
-    /** Create or reuse a host-UID room so new orphan nodes aren't created every time */
+    /** Generate a unique 6-digit room code by checking existing room codes on RTDB */
+    public void generateUniqueRoomCode(DataCallback<String> callback) {
+        database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String candidateCode = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+                boolean exists = false;
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    String existingCode = child.child("code").getValue(String.class);
+                    if (existingCode != null && existingCode.equals(candidateCode)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (exists) {
+                    generateUniqueRoomCode(callback); // retry recursively until unique
+                } else {
+                    if (callback != null) callback.onResult(candidateCode);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                String candidateCode = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+                if (callback != null) callback.onResult(candidateCode);
+            }
+        });
+    }
+
+    /** Create a new room with a unique 6-digit numeric room code (e.g. /rooms/849201) */
     public void getOrCreateHostRoom(String hostUid, String hostName, String avatarFileName, String mode, DataCallback<String> callback) {
         if (hostUid == null || hostUid.isEmpty()) {
-            hostUid = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+            hostUid = "Guest_" + System.currentTimeMillis();
         }
-        final String roomId = hostUid;
-        DatabaseReference roomRef = database.child("rooms").child(roomId);
-        String code = String.valueOf(100000 + Math.abs(roomId.hashCode() % 900000));
+        final String hUid = hostUid;
+        final String hName = hostName != null ? hostName : "Player";
+        final String aFile = avatarFileName != null ? avatarFileName : "avatar_01.png";
+        final String modeStr = mode != null ? mode : "ANIMALS";
 
-        Map<String, Object> roomData = new HashMap<>();
-        roomData.put("roomId", roomId);
-        roomData.put("code", code);
-        roomData.put("mode", mode != null ? mode : "ANIMALS");
-        roomData.put("hostUid", hostUid);
-        roomData.put("status", "LOBBY");
-        roomData.put("createdAt", ServerValue.TIMESTAMP);
-        roomRef.updateChildren(roomData);
+        generateUniqueRoomCode(uniqueCode -> {
+            DatabaseReference roomRef = database.child("rooms").child(uniqueCode);
+            Map<String, Object> roomData = new HashMap<>();
+            roomData.put("roomId", uniqueCode);
+            roomData.put("code", uniqueCode);
+            roomData.put("mode", modeStr);
+            roomData.put("hostUid", hUid);
+            roomData.put("status", "LOBBY");
+            roomData.put("createdAt", ServerValue.TIMESTAMP);
+            roomRef.updateChildren(roomData);
 
-        Map<String, Object> playerData = new HashMap<>();
-        playerData.put("uid", hostUid);
-        playerData.put("displayName", hostName != null ? hostName : "Player");
-        playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
-        playerData.put("joinedAt", ServerValue.TIMESTAMP);
-        playerData.put("ready", false);
-        roomRef.child("players").child(hostUid).setValue(playerData);
+            Map<String, Object> playerData = new HashMap<>();
+            playerData.put("uid", hUid);
+            playerData.put("displayName", hName);
+            playerData.put("avatarFileName", aFile);
+            playerData.put("joinedAt", ServerValue.TIMESTAMP);
+            playerData.put("ready", false);
+            roomRef.child("players").child(hUid).setValue(playerData);
 
-        if (callback != null) callback.onResult(roomId);
+            if (callback != null) callback.onResult(uniqueCode);
+        });
     }
 
     /** Delete completed room from Firebase RTDB */

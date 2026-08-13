@@ -81,7 +81,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
         roomCodeText = findViewById(R.id.roomCodeText);
         roomModeText = findViewById(R.id.roomModeText);
-        avatarContainer = findViewById(R.id.playerAvatarContainer);
         playersList = findViewById(R.id.playersList);
         rvInviteFriends = findViewById(R.id.rvInviteFriends);
         readyButton = findViewById(R.id.readyButton);
@@ -133,12 +132,22 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         String mode = getIntent().getStringExtra(EXTRA_MODE);
         String code = getIntent().getStringExtra(EXTRA_ROOM_CODE);
 
-        if (code != null) {
-            socket.joinRoomByCode(code);
-        } else if (mode != null) {
-            socket.createRoom(mode, null);
+        if (code != null && !code.isEmpty()) {
+            currentRoomId = code;
+            listenToRoomPresence(currentRoomId);
+            if (socket != null && socket.isConnected()) socket.joinRoomByCode(code);
         } else {
-            socket.createRoom("ANIMALS", null);
+            String hostUid = prefs().getUserId();
+            String hostName = prefs().getUsername();
+            String avatarFile = prefs().getAvatarFileName();
+            String selectedMode = mode != null && !mode.isEmpty() ? mode : "ANIMALS";
+            firebaseManager.getOrCreateHostRoom(hostUid, hostName, avatarFile, selectedMode, roomCode -> {
+                runOnUiThread(() -> {
+                    currentRoomId = roomCode;
+                    listenToRoomPresence(currentRoomId);
+                });
+            });
+            if (socket != null && socket.isConnected()) socket.createRoom(selectedMode, null);
         }
 
         setupInviteListener();
@@ -228,8 +237,49 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             pMap.put("ready", isLocallyReady);
             pMap.put("joinedAt", ServerValue.TIMESTAMP);
             firebaseManager.getRoomRef(roomId).child("players").child(uid).setValue(pMap);
+            firebaseManager.getRoomRef(roomId).child("players").child(uid).onDisconnect().removeValue();
         }
 
+        // Status Listener for match start
+        firebaseManager.getRoomRef(roomId).child("status").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String status = snapshot.getValue(String.class);
+                if ("PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status)) {
+                    launchGame();
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // Code Listener for unique room code from /rooms/{roomId}/code
+        firebaseManager.getRoomRef(roomId).child("code").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String uniqueCode = snapshot.getValue(String.class);
+                if (uniqueCode != null && !uniqueCode.isEmpty()) {
+                    if (room != null) room.code = uniqueCode;
+                    if (roomCodeText != null) roomCodeText.setText(uniqueCode);
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // Host UID Listener from /rooms/{roomId}/hostUid
+        firebaseManager.getRoomRef(roomId).child("hostUid").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String hUid = snapshot.getValue(String.class);
+                if (hUid != null && !hUid.isEmpty()) {
+                    if (room != null) room.hostId = hUid;
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        if (roomPlayersRef != null && playersListener != null) {
+            roomPlayersRef.removeEventListener(playersListener);
+        }
         roomPlayersRef = firebaseManager.getRoomRef(roomId).child("players");
         playersListener = new ChildEventListener() {
             @Override
@@ -257,26 +307,171 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<RoomInfo.LobbyPlayer> list = new ArrayList<>();
+                int total = (int) snapshot.getChildrenCount();
+                if (total == 0) {
+                    if (room == null) {
+                        room = new RoomInfo();
+                        room.roomId = roomId;
+                        room.code = roomId;
+                        room.mode = getIntent().getStringExtra(EXTRA_MODE);
+                    }
+                    ensureLocalPlayerInList(room);
+                    updateRoomUI(room);
+                    return;
+                }
+                final int[] count = {0};
                 for (DataSnapshot child : snapshot.getChildren()) {
                     String pUid = child.child("uid").getValue(String.class);
+                    if (pUid == null) pUid = child.getKey();
                     String name = child.child("displayName").getValue(String.class);
                     String avatarFile = child.child("avatarFileName").getValue(String.class);
                     Boolean ready = child.child("ready").getValue(Boolean.class);
-                    RoomInfo.LobbyPlayer p = new RoomInfo.LobbyPlayer();
-                    p.userId = pUid;
-                    p.username = name != null ? name : "Player";
-                    p.avatarFileName = avatarFile != null ? avatarFile : "avatar_01.png";
-                    p.isReady = Boolean.TRUE.equals(ready);
-                    list.add(p);
-                }
-                if (room != null) {
-                    room.players = list;
-                    updateRoomUI(room);
+
+                    final String uidFinal = pUid;
+                    final boolean readyFinal = Boolean.TRUE.equals(ready);
+
+                    firebaseManager.getUserProfile(pUid, userMap -> {
+                        RoomInfo.LobbyPlayer p = new RoomInfo.LobbyPlayer();
+                        p.userId = uidFinal;
+                        if (userMap != null) {
+                            String uName = (String) userMap.get("displayName");
+                            String uAv = (String) userMap.get("avatarFileName");
+                            p.username = uName != null ? uName : (name != null ? name : "Player");
+                            p.avatarFileName = uAv != null ? uAv : (avatarFile != null ? avatarFile : "avatar_01.png");
+                        } else {
+                            p.username = name != null ? name : "Player";
+                            p.avatarFileName = avatarFile != null ? avatarFile : "avatar_01.png";
+                        }
+                        p.isReady = readyFinal;
+                        list.add(p);
+                        count[0]++;
+                        if (count[0] >= total) {
+                            runOnUiThread(() -> {
+                                if (room == null) {
+                                    room = new RoomInfo();
+                                    room.roomId = roomId;
+                                    room.code = roomId;
+                                    room.mode = getIntent().getStringExtra(EXTRA_MODE);
+                                }
+                                room.players = list;
+                                ensureLocalPlayerInList(room);
+                                updateRoomUI(room);
+                            });
+                        }
+                    });
                 }
             }
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    private void updateRoomUI(RoomInfo room) {
+        if (room == null) return;
+        ensureLocalPlayerInList(room);
+
+        String hostUid = room.hostId != null && !room.hostId.isEmpty() ? room.hostId : currentRoomId;
+        ensureHostPlayerInList(room, hostUid);
+
+        if (room.code == null || room.code.isEmpty() || room.code.startsWith("GC-")) {
+            room.code = currentRoomId != null ? currentRoomId : String.valueOf(100000 + new java.util.Random().nextInt(900000));
+        }
+
+        if (roomCodeText != null) roomCodeText.setText(room.code);
+        if (roomModeText != null)
+            roomModeText.setText((room.mode != null ? room.mode : "ANIMALS") + " Mode (" + room.players.size() + "/5 Players)");
+
+        ModernFButton btnStart = findViewById(R.id.btnStartMatch);
+        String myUid = prefs().getUserId();
+        boolean isHost = myUid != null && myUid.equals(hostUid);
+
+        int nonHostReadyCount = 0;
+        int nonHostTotalCount = 0;
+        for (RoomInfo.LobbyPlayer p : room.players) {
+            if (p.userId != null && !p.userId.equals(hostUid) && !p.isLeft) {
+                nonHostTotalCount++;
+                if (p.isReady) nonHostReadyCount++;
+            }
+        }
+
+        if (isHost) {
+            if (readyButton != null) readyButton.setVisibility(View.GONE);
+            if (btnStart != null) {
+                btnStart.setVisibility(View.VISIBLE);
+                boolean allReady = nonHostTotalCount > 0 && nonHostReadyCount == nonHostTotalCount;
+                btnStart.setEnabled(allReady);
+                btnStart.setAlpha(allReady ? 1.0f : 0.4f);
+                btnStart.setText(allReady ? "START MATCH 🚀" : "Waiting for players to be ready...");
+                btnStart.setOnClickListener(v -> startMatchByHost());
+            }
+        } else {
+            if (btnStart != null) btnStart.setVisibility(View.GONE);
+            if (readyButton != null) {
+                readyButton.setVisibility(View.VISIBLE);
+                readyButton.setText(isLocallyReady ? "Cancel Ready 🔴" : "I'm Ready 🟢");
+                readyButton.setOnClickListener(v -> toggleReady());
+            }
+        }
+
+        playerAdapter.submitList(room.players, hostUid);
+    }
+
+    private void ensureLocalPlayerInList(RoomInfo room) {
+        if (room == null) return;
+        if (room.players == null) room.players = new ArrayList<>();
+        String myUid = prefs().getUserId();
+        String myName = prefs().getUsername();
+        boolean found = false;
+        for (RoomInfo.LobbyPlayer p : room.players) {
+            if (p.userId != null && p.userId.equals(myUid)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found && myUid != null) {
+            RoomInfo.LobbyPlayer self = new RoomInfo.LobbyPlayer();
+            self.userId = myUid;
+            self.username = myName != null ? myName : "Player";
+            self.avatarFileName = prefs().getAvatarFileName();
+            self.isReady = isLocallyReady;
+            room.players.add(0, self);
+        }
+    }
+
+    private void ensureHostPlayerInList(RoomInfo room, String hostUid) {
+        if (room == null || hostUid == null) return;
+        if (room.players == null) room.players = new ArrayList<>();
+        boolean foundHost = false;
+        for (RoomInfo.LobbyPlayer p : room.players) {
+            if (p.userId != null && p.userId.equals(hostUid)) {
+                foundHost = true;
+                p.isHost = true;
+                break;
+            }
+        }
+        if (!foundHost) {
+            RoomInfo.LobbyPlayer hostPlayer = new RoomInfo.LobbyPlayer();
+            hostPlayer.userId = hostUid;
+            hostPlayer.username = "Host";
+            hostPlayer.avatarFileName = "avatar_01.png";
+            hostPlayer.isHost = true;
+            hostPlayer.isLeft = true;
+            room.players.add(0, hostPlayer);
+        }
+    }
+
+    private void startMatchByHost() {
+        if (currentRoomId == null) return;
+        firebaseManager.getRoomRef(currentRoomId).child("status").setValue("PLAYING");
+        if (socket != null && socket.isConnected()) socket.startGame();
+        launchGame();
+    }
+
+    private void launchGame() {
+        if (isFinishing()) return;
+        String modeStr = room != null && room.mode != null ? room.mode : "ANIMALS";
+        startActivity(GameActivity.intent(this, GameMode.valueOf(modeStr), currentRoomId, 60_000L));
+        finish();
     }
 
     private void removePresence() {
@@ -321,10 +516,10 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     @Override
     public void onRoomJoined(RoomInfo room) {
         this.room = room;
-        this.currentRoomId = room.roomId;
+        if (room != null) this.currentRoomId = room.roomId;
         runOnUiThread(() -> {
             updateRoomUI(room);
-            listenToRoomPresence(room.roomId);
+            listenToRoomPresence(currentRoomId);
         });
     }
 
@@ -334,135 +529,12 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         runOnUiThread(() -> updateRoomUI(room));
     }
 
-    private void updateRoomUI(RoomInfo room) {
-        if (room == null) return;
-        ensureLocalPlayerInList(room);
-
-        if (room.code == null || room.code.isEmpty() || room.code.startsWith("GC-")) {
-            room.code = String.valueOf(100000 + new java.util.Random().nextInt(900000));
-        }
-
-        if (roomCodeText != null) roomCodeText.setText(room.code);
-        if (roomModeText != null)
-            roomModeText.setText((room.mode != null ? room.mode : "ANIMALS") + " Mode (" + room.players.size() + "/5 Players)");
-
-        TextView tvStatus = findViewById(R.id.tvLobbyStatus);
-        ModernFButton btnStart = findViewById(R.id.btnStartMatch);
-        int count = room.players != null ? room.players.size() : 1;
-
-        if (readyButton != null) {
-            readyButton.setVisibility(count >= 2 ? View.VISIBLE : View.GONE);
-        }
-        if (btnStart != null) {
-            btnStart.setVisibility(count >= 2 ? View.VISIBLE : View.GONE);
-        }
-
-        if (tvStatus != null && !isCountingDown) {
-            if (count < 2) {
-                tvStatus.setText("Waiting for other players to join (Need 2+ players)...");
-                tvStatus.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
-            } else {
-                tvStatus.setText(count + " Players Connected. Tap Ready to start match.");
-                tvStatus.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
-            }
-        }
-
-        playerAdapter.submitList(room.players);
-        renderAvatarSlots(room);
-        checkAutoStart(room);
-    }
-
-    private void ensureLocalPlayerInList(RoomInfo room) {
-        if (room == null) return;
-        if (room.players == null) room.players = new ArrayList<>();
-        String myUid = prefs().getUserId();
-        String myName = prefs().getUsername();
-        boolean found = false;
-        for (RoomInfo.LobbyPlayer p : room.players) {
-            if (p.userId != null && p.userId.equals(myUid)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found && myUid != null) {
-            RoomInfo.LobbyPlayer self = new RoomInfo.LobbyPlayer();
-            self.userId = myUid;
-            self.username = myName != null ? myName : "Player";
-            self.avatarFileName = prefs().getAvatarFileName();
-            self.isReady = isLocallyReady;
-            room.players.add(0, self);
-        }
-    }
-
-    private void checkAutoStart(RoomInfo room) {
-        if (room == null || room.players == null || room.players.size() < 2) {
-            cancelCountdown();
-            return;
-        }
-
-        boolean allReady = true;
-        for (RoomInfo.LobbyPlayer p : room.players) {
-            if (!p.isReady) {
-                allReady = false;
-                break;
-            }
-        }
-
-        if (allReady) {
-            if (!isCountingDown) {
-                isCountingDown = true;
-                TextView tvStatus = findViewById(R.id.tvLobbyStatus);
-                startCountdownTimer = new android.os.CountDownTimer(5000, 1000) {
-                    @Override
-                    public void onTick(long millisUntilFinished) {
-                        long secs = (millisUntilFinished / 1000) + 1;
-                        if (tvStatus != null) {
-                            tvStatus.setText("All players ready! Starting match in " + secs + "s...");
-                            tvStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
-                        }
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        isCountingDown = false;
-                        if (socket != null && socket.isConnected()) {
-                            socket.startGame();
-                        } else {
-                            String modeStr = getIntent().getStringExtra(EXTRA_MODE);
-                            onGameStart(modeStr != null ? modeStr : "ANIMALS", 60_000L);
-                        }
-                    }
-                }.start();
-            }
-        } else {
-            cancelCountdown();
-        }
-    }
-
     private void cancelCountdown() {
         if (startCountdownTimer != null) {
             startCountdownTimer.cancel();
             startCountdownTimer = null;
         }
         isCountingDown = false;
-    }
-
-    private void renderAvatarSlots(RoomInfo room) {
-        if (avatarContainer == null || room == null || room.players == null) return;
-        avatarContainer.removeAllViews();
-        String selfUid = prefs().getUserId();
-        String selfAvatarFile = prefs().getAvatarFileName();
-
-        for (RoomInfo.LobbyPlayer p : room.players) {
-            PlayerAvatarView avatar = new PlayerAvatarView(this);
-            avatar.setPlayerData(p.username, p.score, 1, p.isReady, false);
-            boolean isSelf = p.userId != null && p.userId.equals(selfUid);
-            String avatarFile = isSelf ? selfAvatarFile : "avatar_01.png";
-            avatar.setAvatarBitmap(glab.guesscard.utils.AvatarManager.getInstance().getAvatarByName(this, avatarFile));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            avatarContainer.addView(avatar, lp);
-        }
     }
 
     // ── INVITE FRIENDS ADAPTER ──────────────────────────────────────────────
