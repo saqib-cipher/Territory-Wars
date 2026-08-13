@@ -47,26 +47,22 @@ public class HomeFragment extends Fragment {
         PreferenceManager prefs = appContainer.getPreferences();
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        boolean isOnline = user != null && !user.isAnonymous();
+        // Anyone with a Firebase account (including guests) can browse and join online rooms.
+        boolean isOnline = user != null;
 
         View onlineContainer = view.findViewById(R.id.onlineModesContainer);
         View offlineContainer = view.findViewById(R.id.offlinePracticeContainer);
 
-        if (isOnline) {
-            if (onlineContainer != null) onlineContainer.setVisibility(View.VISIBLE);
-            if (offlineContainer != null) offlineContainer.setVisibility(View.GONE);
-        } else {
-            if (onlineContainer != null) onlineContainer.setVisibility(View.GONE);
-            if (offlineContainer != null) offlineContainer.setVisibility(View.VISIBLE);
-        }
+        if (onlineContainer != null) onlineContainer.setVisibility(View.VISIBLE);
+        if (offlineContainer != null) offlineContainer.setVisibility(View.GONE);
 
         TextView tvPlayerName = view.findViewById(R.id.tvPlayerName);
         if (tvPlayerName != null) {
             String username = prefs.getUsername();
-            if (isOnline && username != null && !username.isEmpty()) {
+            if (username != null && !username.isEmpty()) {
                 tvPlayerName.setText("Welcome back, " + username);
             } else {
-                tvPlayerName.setText("Playing Offline Mode");
+                tvPlayerName.setText("Welcome to Guess Card!");
             }
         }
 
@@ -85,8 +81,10 @@ public class HomeFragment extends Fragment {
     private void listenToActiveRooms(View view) {
         RecyclerView rv = view.findViewById(R.id.rvActiveRooms);
         TextView tvNo = view.findViewById(R.id.tvNoActiveRooms);
+        View onlineContainer = view.findViewById(R.id.onlineModesContainer);
         if (rv == null) return;
 
+        if (onlineContainer != null) onlineContainer.setVisibility(View.VISIBLE);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         glab.guesscard.GuessCardApp.from(requireContext()).getFirebaseManager().getDatabaseRef().child("rooms")
@@ -100,6 +98,7 @@ public class HomeFragment extends Fragment {
                         for (com.google.firebase.database.DataSnapshot child : snapshot.getChildren()) {
                             String rId = child.getKey();
                             String code = child.child("code").getValue(String.class);
+                            String roomName = child.child("name").getValue(String.class);
                             String mode = child.child("mode").getValue(String.class);
                             String hostUid = child.child("hostUid").getValue(String.class);
                             String status = child.child("status").getValue(String.class);
@@ -109,25 +108,50 @@ public class HomeFragment extends Fragment {
                             }
 
                             long pCount = child.child("players").getChildrenCount();
+                            if (pCount == 0) {
+                                pCount = 1;
+                            }
 
                             String hostName = "Host";
                             String hostAvatar = "avatar_01.png";
-                            if (hostUid != null && child.child("players").hasChild(hostUid)) {
-                                com.google.firebase.database.DataSnapshot hSnap = child.child("players").child(hostUid);
-                                String n = hSnap.child("displayName").getValue(String.class);
-                                String a = hSnap.child("avatarFileName").getValue(String.class);
-                                if (n != null) hostName = n;
-                                if (a != null) hostAvatar = a;
+                            if (child.child("players").exists()) {
+                                for (com.google.firebase.database.DataSnapshot p : child.child("players").getChildren()) {
+                                    String n = p.child("displayName").getValue(String.class);
+                                    String a = p.child("avatarFileName").getValue(String.class);
+                                    if (n != null && !n.isEmpty()) {
+                                        hostName = n;
+                                        if (a != null) hostAvatar = a;
+                                        break;
+                                    }
+                                }
                             }
+
+                            // Names of players already in the room
+                            StringBuilder joined = new StringBuilder();
+                            int shown = 0;
+                            if (child.child("players").exists()) {
+                                for (com.google.firebase.database.DataSnapshot p : child.child("players").getChildren()) {
+                                    if (shown >= 3) break;
+                                    String pn = p.child("displayName").getValue(String.class);
+                                    if (pn != null && !pn.isEmpty()) {
+                                        if (joined.length() > 0) joined.append(", ");
+                                        joined.append(pn);
+                                        shown++;
+                                    }
+                                }
+                            }
+                            if (pCount > shown) joined.append(" +").append(pCount - shown).append(" more");
 
                             java.util.Map<String, Object> roomMap = new java.util.HashMap<>();
                             roomMap.put("roomId", rId);
-                            roomMap.put("code", code != null ? code : rId);
+                            roomMap.put("name", (roomName != null && !roomName.trim().isEmpty()) ? roomName.trim() : ((mode != null ? mode : "ANIMALS") + " ROOM"));
+                            roomMap.put("code", code != null && !code.isEmpty() ? code : rId);
                             roomMap.put("mode", mode != null ? mode : "ANIMALS");
                             roomMap.put("hostUid", hostUid != null ? hostUid : "");
                             roomMap.put("hostName", hostName);
                             roomMap.put("hostAvatar", hostAvatar);
                             roomMap.put("playersCount", pCount);
+                            roomMap.put("playersNames", joined.toString());
                             boolean isFull = pCount >= 5 || "IN_PROGRESS".equalsIgnoreCase(status) || "PLAYING".equalsIgnoreCase(status);
                             roomMap.put("isFull", isFull);
 
@@ -175,17 +199,25 @@ public class HomeFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull VH holder, int position) {
             java.util.Map<String, Object> r = items.get(position);
+            String name = String.valueOf(r.getOrDefault("name", "ROOM"));
             String mode = String.valueOf(r.getOrDefault("mode", "ANIMALS"));
             String hostName = String.valueOf(r.getOrDefault("hostName", "Host"));
             String hostAvatar = String.valueOf(r.getOrDefault("hostAvatar", "avatar_01.png"));
             String code = String.valueOf(r.getOrDefault("code", "------"));
+            String playersNames = String.valueOf(r.getOrDefault("playersNames", ""));
             long pCount = (long) r.getOrDefault("playersCount", 1L);
             boolean isFull = Boolean.TRUE.equals(r.get("isFull"));
 
-            holder.tvMode.setText(mode.toUpperCase() + " MODE");
+            holder.tvName.setText(name);
             holder.tvHost.setText("Host: " + hostName);
             holder.tvCode.setText("Code: " + code);
             holder.tvPlayers.setText(pCount + "/5 Players");
+            if (playersNames.isEmpty()) {
+                holder.tvPlayersList.setVisibility(View.GONE);
+            } else {
+                holder.tvPlayersList.setVisibility(View.VISIBLE);
+                holder.tvPlayersList.setText("Joined: " + playersNames);
+            }
 
             glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), holder.imgAvatar, hostAvatar);
 
@@ -202,7 +234,12 @@ public class HomeFragment extends Fragment {
                 holder.btnJoin.setOnClickListener(v -> {
                     Intent intent = new Intent(requireContext(), LobbyActivity.class);
                     intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
+                    String roomId = String.valueOf(r.getOrDefault("roomId", ""));
+                    if (roomId != null && !roomId.isEmpty()) {
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
+                    }
                     intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, code);
+                    intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, name);
                     startActivity(intent);
                 });
             }
@@ -215,16 +252,17 @@ public class HomeFragment extends Fragment {
 
         class VH extends RecyclerView.ViewHolder {
             android.widget.ImageView imgAvatar;
-            TextView tvMode, tvHost, tvCode, tvPlayers;
+            TextView tvName, tvHost, tvCode, tvPlayers, tvPlayersList;
             ModernFButton btnJoin;
 
             VH(@NonNull View itemView) {
                 super(itemView);
                 imgAvatar = itemView.findViewById(R.id.imgActiveRoomHostAvatar);
-                tvMode = itemView.findViewById(R.id.tvActiveRoomMode);
+                tvName = itemView.findViewById(R.id.tvActiveRoomName);
                 tvHost = itemView.findViewById(R.id.tvActiveRoomHost);
                 tvCode = itemView.findViewById(R.id.tvActiveRoomCode);
                 tvPlayers = itemView.findViewById(R.id.tvActiveRoomPlayers);
+                tvPlayersList = itemView.findViewById(R.id.tvActiveRoomPlayersList);
                 btnJoin = itemView.findViewById(R.id.btnJoinActiveRoom);
             }
         }

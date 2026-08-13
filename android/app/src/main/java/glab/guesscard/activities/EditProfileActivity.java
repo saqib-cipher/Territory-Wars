@@ -122,6 +122,7 @@ public class EditProfileActivity extends BaseActivity {
                     .child("users").child(uid).child("displayName").setValue(name);
             container().getFirebaseManager().getDatabaseRef()
                     .child("users").child(uid).child("avatarFileName").setValue(selectedAvatarFile);
+            container().getFirebaseManager().refreshCachedProfile(uid, name, selectedAvatarFile);
         }
 
         Toast.makeText(this, "Profile updated!", Toast.LENGTH_SHORT).show();

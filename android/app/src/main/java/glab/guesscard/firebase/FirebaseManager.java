@@ -31,6 +31,8 @@ public class FirebaseManager {
 
     private static final String TAG = "FirebaseManager";
 
+    private static final int PROFILE_CACHE_SIZE = 200;
+
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onFailure(String message);
@@ -43,10 +45,16 @@ public class FirebaseManager {
     private final FirebaseAuth auth;
     private final DatabaseReference database;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final glab.guesscard.network.PreferenceManager preferenceManager;
 
-    public FirebaseManager() {
+    /** In-memory cache of player profiles (uid -> profile map) to avoid repeated RTDB reads. */
+    private final android.util.LruCache<String, Map<String, Object>> profileCache =
+            new android.util.LruCache<>(PROFILE_CACHE_SIZE);
+
+    public FirebaseManager(glab.guesscard.network.PreferenceManager preferenceManager) {
         this.auth = FirebaseAuth.getInstance();
         this.database = FirebaseDatabase.getInstance().getReference();
+        this.preferenceManager = preferenceManager;
     }
 
     // ── AUTH ────────────────────────────────────────────────────────────────
@@ -113,6 +121,7 @@ public class FirebaseManager {
 
         database.child("users").child(user.getUid()).updateChildren(userData)
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to save user: " + e.getMessage()));
+        cacheUserProfile(user.getUid(), userData);
     }
 
     public interface ErrorCallback {
@@ -125,19 +134,88 @@ public class FirebaseManager {
     }
 
     public void getUserProfile(String uid, DataCallback<Map<String, Object>> callback, ErrorCallback errorCallback) {
+        if (uid == null) {
+            if (callback != null) callback.onResult(null);
+            return;
+        }
+        Map<String, Object> cached = profileCache.get(uid);
+        if (cached == null && preferenceManager != null) {
+            String diskJson = preferenceManager.getCachedProfile(uid);
+            if (diskJson != null && !diskJson.isEmpty()) {
+                try {
+                    Map<String, Object> diskProfile = jsonToMap(new org.json.JSONObject(diskJson));
+                    if (diskProfile != null) {
+                        profileCache.put(uid, diskProfile);
+                        cached = diskProfile;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        if (cached != null) {
+            if (callback != null) callback.onResult(cached);
+            return;
+        }
         database.child("users").child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                if (callback != null) {
-                    //noinspection unchecked
-                    callback.onResult((Map<String, Object>) snapshot.getValue());
-                }
+                //noinspection unchecked
+                Map<String, Object> profile = (Map<String, Object>) snapshot.getValue();
+                if (profile != null) cacheUserProfile(uid, profile);
+                if (callback != null) callback.onResult(profile);
             }
             @Override
             public void onCancelled(DatabaseError error) {
                 if (errorCallback != null) errorCallback.onError(error.getMessage());
             }
         });
+    }
+
+    /** Store a player profile into the local cache so later lookups skip the network. */
+    public void cacheUserProfile(String uid, Map<String, Object> profile) {
+        if (uid == null || profile == null) return;
+        profileCache.put(uid, profile);
+        if (preferenceManager != null) {
+            preferenceManager.cacheProfile(uid, new org.json.JSONObject(profile).toString());
+        }
+    }
+
+    /** Invalidate a cached profile (e.g. after an edit). */
+    public void invalidateUserProfile(String uid) {
+        if (uid == null) return;
+        profileCache.remove(uid);
+        if (preferenceManager != null) preferenceManager.clearCachedProfile(uid);
+    }
+
+    /** Refresh the cached profile with fresh values (e.g. right after a profile edit). */
+    public void refreshCachedProfile(String uid, String displayName, String avatarFileName) {
+        if (uid == null) return;
+        Map<String, Object> profile = profileCache.get(uid);
+        if (profile == null) {
+            profile = new HashMap<>();
+            profile.put("uid", uid);
+        }
+        if (displayName != null) profile.put("displayName", displayName);
+        if (avatarFileName != null) profile.put("avatarFileName", avatarFileName);
+        profileCache.put(uid, profile);
+        if (preferenceManager != null) {
+            preferenceManager.cacheProfile(uid, new org.json.JSONObject(profile).toString());
+        }
+    }
+
+    /** Convert a flat JSONObject into a String->Object map (values stay JSON types). */
+    private Map<String, Object> jsonToMap(org.json.JSONObject json) {
+        if (json == null) return null;
+        try {
+            Map<String, Object> map = new HashMap<>();
+            java.util.Iterator<String> keys = json.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                map.put(key, json.get(key));
+            }
+            return map;
+        } catch (org.json.JSONException e) {
+            return null;
+        }
     }
 
     /** Update the user's display name. */
@@ -233,6 +311,25 @@ public class FirebaseManager {
         database.child("users").child(friendUid).child("friends").child(uid).removeValue();
     }
 
+    /** Check whether two users are friends. */
+    public void isFriend(String uid, String targetUid, DataCallback<Boolean> callback) {
+        if (uid == null || targetUid == null) {
+            if (callback != null) callback.onResult(false);
+            return;
+        }
+        database.child("users").child(uid).child("friends").child(targetUid)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (callback != null) callback.onResult(snapshot.exists());
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        if (callback != null) callback.onResult(false);
+                    }
+                });
+    }
+
     /** Get user's friend list with profiles */
     public void getFriends(String uid, DataCallback<List<Map<String, Object>>> callback) {
         if (uid == null) {
@@ -313,21 +410,29 @@ public class FirebaseManager {
         return listener;
     }
 
-    /** Search users by UID or Username */
+    /** Search users by UID or Username (excludes the current user). */
     public void searchUsers(String query, DataCallback<List<Map<String, Object>>> callback) {
+        searchUsers(null, query, callback);
+    }
+
+    /** Search users by UID or Username. Pass currentUid to exclude yourself from results. */
+    public void searchUsers(String currentUid, String query, DataCallback<List<Map<String, Object>>> callback) {
         if (query == null || query.trim().isEmpty()) {
             if (callback != null) callback.onResult(new ArrayList<>());
             return;
         }
         String q = query.trim().toLowerCase();
+        long onlineCutoff = System.currentTimeMillis() - 5 * 60 * 1000L;
         database.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 List<Map<String, Object>> results = new ArrayList<>();
                 for (DataSnapshot child : snapshot.getChildren()) {
                     String uid = child.getKey();
+                    if (currentUid != null && currentUid.equals(uid)) continue;
                     String name = child.child("displayName").getValue(String.class);
                     String avatar = child.child("avatarFileName").getValue(String.class);
+                    Long lastSeen = child.child("lastSeen").getValue(Long.class);
 
                     if ((uid != null && uid.toLowerCase().contains(q)) ||
                         (name != null && name.toLowerCase().contains(q))) {
@@ -335,7 +440,8 @@ public class FirebaseManager {
                         map.put("uid", uid);
                         map.put("displayName", name != null ? name : "Player");
                         map.put("avatarFileName", avatar != null ? avatar : "avatar_01.png");
-                        map.put("status", "Online");
+                        map.put("status", lastSeen != null && lastSeen >= onlineCutoff ? "Online" : "Offline");
+                        cacheUserProfile(uid, map);
                         results.add(map);
                     }
                 }
@@ -353,14 +459,18 @@ public class FirebaseManager {
         void onRoomFound(String roomId, String roomCode, String mode);
     }
 
-    /** Find an open room matching a specific mode (< 5 players) */
+    /** Find an open room matching a specific mode (< 5 players). Returns roomId = host UID root node. */
     public void findOpenRoomByMode(String modeStr, QuickMatchCallback callback) {
         database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot child : snapshot.getChildren()) {
                     String rMode = child.child("mode").getValue(String.class);
+                    String status = child.child("status").getValue(String.class);
                     long pCount = child.child("players").getChildrenCount();
+                    if ("FINISHED".equalsIgnoreCase(status) || "PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status)) {
+                        continue;
+                    }
                     if (pCount > 0 && pCount < 5 && (modeStr == null || modeStr.equalsIgnoreCase(rMode))) {
                         String rId = child.getKey();
                         String code = child.child("code").getValue(String.class);
@@ -380,30 +490,6 @@ public class FirebaseManager {
         });
     }
 
-    /** Upload room details & host player presence to Firebase Realtime Database /rooms/{roomId} */
-    public void createRoomOnFirebase(String roomId, String modeStr, String hostUid, String hostName, String avatarFileName) {
-        if (roomId == null) return;
-        DatabaseReference roomRef = database.child("rooms").child(roomId);
-        Map<String, Object> roomData = new HashMap<>();
-        roomData.put("roomId", roomId);
-        roomData.put("code", roomId);
-        roomData.put("mode", modeStr != null ? modeStr : "ANIMALS");
-        roomData.put("hostUid", hostUid != null ? hostUid : "");
-        roomData.put("status", "LOBBY");
-        roomData.put("createdAt", ServerValue.TIMESTAMP);
-        roomRef.updateChildren(roomData);
-
-        if (hostUid != null && !hostUid.isEmpty()) {
-            Map<String, Object> playerData = new HashMap<>();
-            playerData.put("uid", hostUid);
-            playerData.put("displayName", hostName != null ? hostName : "Player");
-            playerData.put("avatarFileName", avatarFileName != null ? avatarFileName : "avatar_01.png");
-            playerData.put("joinedAt", ServerValue.TIMESTAMP);
-            playerData.put("ready", false);
-            roomRef.child("players").child(hostUid).setValue(playerData);
-        }
-    }
-
     /** Sync user profile & avatar from Firebase RTDB upon re-login */
     public void syncUserProfileOnLogin(String uid, glab.guesscard.network.PreferenceManager prefs, Runnable onComplete) {
         if (uid == null) {
@@ -418,6 +504,8 @@ public class FirebaseManager {
                     String avatarFile = snapshot.child("avatarFileName").getValue(String.class);
                     if (name != null && !name.isEmpty()) prefs.saveUsername(name);
                     if (avatarFile != null && !avatarFile.isEmpty()) prefs.saveAvatarFileName(avatarFile);
+                    //noinspection unchecked
+                    cacheUserProfile(uid, (Map<String, Object>) snapshot.getValue());
                 }
                 if (onComplete != null) onComplete.run();
             }
@@ -429,72 +517,259 @@ public class FirebaseManager {
         });
     }
 
-    /** Generate a unique 6-digit room code by checking existing room codes on RTDB */
+    public interface RoomCreateCallback {
+        void onRoomCreated(String roomId, String roomCode, String mode);
+    }
+
+    public interface RoomLookupCallback {
+        void onRoomFound(String roomId, String roomCode, String mode);
+    }
+
+    /** Generate a 6-digit numeric code that is not used by any existing room. */
     public void generateUniqueRoomCode(DataCallback<String> callback) {
         database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                String candidateCode = String.valueOf(100000 + new java.util.Random().nextInt(900000));
-                boolean exists = false;
+                java.util.Set<String> used = new java.util.HashSet<>();
                 for (DataSnapshot child : snapshot.getChildren()) {
                     String existingCode = child.child("code").getValue(String.class);
-                    if (existingCode != null && existingCode.equals(candidateCode)) {
-                        exists = true;
-                        break;
+                    if (existingCode != null) used.add(existingCode);
+                }
+                if (callback != null) callback.onResult(generateUnusedCode(used));
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onResult(generateUnusedCode(null));
+            }
+        });
+    }
+
+    private String generateUnusedCode(java.util.Set<String> used) {
+        if (used == null) used = new java.util.HashSet<>();
+        for (int attempt = 0; attempt < 50; attempt++) {
+            String candidate = String.valueOf(100000 + new java.util.Random().nextInt(900000));
+            if (!used.contains(candidate)) return candidate;
+        }
+        return String.valueOf(100000 + new java.util.Random().nextInt(900000));
+    }
+
+    /**
+     * Create or reuse the host's room under /rooms/{hostUid}/ (host UID is the root node).
+     * The join code is stored in /rooms/{hostUid}/code and is guaranteed unique:
+     * existing codes are checked first and a new one is generated on collision.
+     */
+    public void getOrCreateHostRoom(String hostUid, String hostName, String avatarFileName, String roomName, String mode, RoomCreateCallback callback) {
+        if (hostUid == null || hostUid.isEmpty()) {
+            FirebaseUser u = getCurrentUser();
+            if (u != null) {
+                hostUid = u.getUid();
+            } else {
+                hostUid = "User_" + String.valueOf(100000 + new java.util.Random().nextInt(900000));
+            }
+        }
+        final String hUid = hostUid;
+        final String hName = hostName != null ? hostName : "Player";
+        final String aFile = avatarFileName != null ? avatarFileName : "avatar_01.png";
+        final String roomTitle = normalizeRoomName(roomName, hName);
+        final String modeStr = mode != null ? mode : "ANIMALS";
+        final DatabaseReference roomRef = database.child("rooms").child(hUid);
+
+        // Reuse the host's existing room if it is still in the lobby and the host is in it.
+        roomRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()
+                        && snapshot.child("players").hasChild(hUid)
+                        && "LOBBY".equalsIgnoreCase(getStringOrEmpty(snapshot.child("status").getValue(String.class)))) {
+                    String existingCode = snapshot.child("code").getValue(String.class);
+                    String existingMode = snapshot.child("mode").getValue(String.class);
+                    if (existingCode != null && !existingCode.isEmpty()) {
+                        roomRef.child("name").setValue(roomTitle);
+                        upsertHostPlayer(roomRef, hUid, hName, aFile);
+                        if (callback != null) callback.onRoomCreated(hUid, existingCode, existingMode != null ? existingMode : modeStr);
+                        return;
                     }
                 }
-                if (exists) {
-                    generateUniqueRoomCode(callback); // retry recursively until unique
+                createRoomWithUniqueCode(roomRef, hUid, hName, aFile, roomTitle, modeStr, callback);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                createRoomWithUniqueCode(roomRef, hUid, hName, aFile, roomTitle, modeStr, callback);
+            }
+        });
+    }
+
+    private String normalizeRoomName(String roomName, String hostName) {
+        String name = roomName != null ? roomName.trim() : "";
+        if (name.isEmpty()) {
+            name = hostName != null && !hostName.isEmpty() ? hostName + "'s Room" : "My Room";
+        }
+        if (name.length() > 30) name = name.substring(0, 30);
+        return name;
+    }
+
+    private void createRoomWithUniqueCode(DatabaseReference roomRef, String hUid, String hName, String aFile, String roomName, String modeStr, RoomCreateCallback callback) {
+        database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                java.util.Set<String> used = new java.util.HashSet<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    String c = child.child("code").getValue(String.class);
+                    if (c != null) used.add(c);
+                }
+                String code = generateUnusedCode(used);
+                writeRoomWithCode(roomRef, hUid, hName, aFile, roomName, modeStr, code, callback);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                writeRoomWithCode(roomRef, hUid, hName, aFile, roomName, modeStr, generateUnusedCode(null), callback);
+            }
+        });
+    }
+
+    private void writeRoomWithCode(DatabaseReference roomRef, String hUid, String hName, String aFile, String roomName, String modeStr, String code, RoomCreateCallback callback) {
+        Map<String, Object> roomData = new HashMap<>();
+        roomData.put("roomId", hUid);
+        roomData.put("name", roomName);
+        roomData.put("code", code);
+        roomData.put("mode", modeStr);
+        roomData.put("hostUid", hUid);
+        roomData.put("status", "LOBBY");
+        roomData.put("createdAt", ServerValue.TIMESTAMP);
+        roomRef.updateChildren(roomData);
+
+        // Code index so /roomCodes/{code} resolves instantly to the host's room.
+        database.child("roomCodes").child(code).setValue(hUid);
+        upsertHostPlayer(roomRef, hUid, hName, aFile);
+
+        if (callback != null) callback.onRoomCreated(hUid, code, modeStr);
+    }
+
+    /** Write (or refresh) the host's presence under /rooms/{hostUid}/players/{hostUid}. */
+    private void upsertHostPlayer(DatabaseReference roomRef, String hostUid, String hostName, String avatarFileName) {
+        Map<String, Object> playerData = new HashMap<>();
+        playerData.put("uid", hostUid);
+        playerData.put("displayName", hostName);
+        playerData.put("avatarFileName", avatarFileName);
+        playerData.put("joinedAt", ServerValue.TIMESTAMP);
+        playerData.put("ready", false);
+        roomRef.child("players").child(hostUid).setValue(playerData);
+    }
+
+    /** Upload room details & host player presence to /rooms/{hostUid} with a unique join code. */
+    public void createRoomOnFirebase(String roomId, String modeStr, String hostUid, String hostName, String avatarFileName, String roomName, RoomCreateCallback callback) {
+        getOrCreateHostRoom(hostUid != null ? hostUid : roomId, hostName, avatarFileName, roomName, modeStr, callback);
+    }
+
+    /** Check whether a room still has a free slot and is not already in progress. */
+    public void hasRoomSlot(String roomId, DataCallback<Boolean> callback) {
+        if (roomId == null) {
+            if (callback != null) callback.onResult(false);
+            return;
+        }
+        database.child("rooms").child(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    if (callback != null) callback.onResult(false);
+                    return;
+                }
+                String status = snapshot.child("status").getValue(String.class);
+                boolean inProgress = "PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status);
+                long pCount = snapshot.child("players").getChildrenCount();
+                if (callback != null) callback.onResult(!inProgress && pCount < 5);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onResult(false);
+            }
+        });
+    }
+
+    /** Resolve a join code to the host's room node: /rooms/{hostUid}/code. */
+    public void findRoomByCode(String code, RoomLookupCallback callback) {
+        if (code == null || code.trim().isEmpty()) {
+            if (callback != null) callback.onRoomFound(null, null, null);
+            return;
+        }
+        final String c = code.trim().toUpperCase();
+        database.child("roomCodes").child(c).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String hostUid = snapshot.getValue(String.class);
+                if (hostUid != null && !hostUid.isEmpty()) {
+                    database.child("rooms").child(hostUid).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot roomSnap) {
+                            if (roomSnap.exists()) {
+                                String roomMode = roomSnap.child("mode").getValue(String.class);
+                                if (callback != null) callback.onRoomFound(hostUid, c, roomMode);
+                            } else {
+                                if (callback != null) callback.onRoomFound(null, null, null);
+                            }
+                        }
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            if (callback != null) callback.onRoomFound(null, null, null);
+                        }
+                    });
                 } else {
-                    if (callback != null) callback.onResult(candidateCode);
+                    scanRoomsForCode(c, callback);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                String candidateCode = String.valueOf(100000 + new java.util.Random().nextInt(900000));
-                if (callback != null) callback.onResult(candidateCode);
+                scanRoomsForCode(c, callback);
             }
         });
     }
 
-    /** Create a new room with a unique 6-digit numeric room code (e.g. /rooms/849201) */
-    public void getOrCreateHostRoom(String hostUid, String hostName, String avatarFileName, String mode, DataCallback<String> callback) {
-        if (hostUid == null || hostUid.isEmpty()) {
-            hostUid = "Guest_" + System.currentTimeMillis();
-        }
-        final String hUid = hostUid;
-        final String hName = hostName != null ? hostName : "Player";
-        final String aFile = avatarFileName != null ? avatarFileName : "avatar_01.png";
-        final String modeStr = mode != null ? mode : "ANIMALS";
+    /** Fallback lookup: scan /rooms for the first room whose code matches. */
+    private void scanRoomsForCode(String code, RoomLookupCallback callback) {
+        database.child("rooms").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    String c = child.child("code").getValue(String.class);
+                    if (c != null && c.equalsIgnoreCase(code)) {
+                        String hostUid = child.getKey();
+                        String roomMode = child.child("mode").getValue(String.class);
+                        if (callback != null) callback.onRoomFound(hostUid, c, roomMode);
+                        return;
+                    }
+                }
+                if (callback != null) callback.onRoomFound(null, null, null);
+            }
 
-        generateUniqueRoomCode(uniqueCode -> {
-            DatabaseReference roomRef = database.child("rooms").child(uniqueCode);
-            Map<String, Object> roomData = new HashMap<>();
-            roomData.put("roomId", uniqueCode);
-            roomData.put("code", uniqueCode);
-            roomData.put("mode", modeStr);
-            roomData.put("hostUid", hUid);
-            roomData.put("status", "LOBBY");
-            roomData.put("createdAt", ServerValue.TIMESTAMP);
-            roomRef.updateChildren(roomData);
-
-            Map<String, Object> playerData = new HashMap<>();
-            playerData.put("uid", hUid);
-            playerData.put("displayName", hName);
-            playerData.put("avatarFileName", aFile);
-            playerData.put("joinedAt", ServerValue.TIMESTAMP);
-            playerData.put("ready", false);
-            roomRef.child("players").child(hUid).setValue(playerData);
-
-            if (callback != null) callback.onResult(uniqueCode);
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onRoomFound(null, null, null);
+            }
         });
     }
 
-    /** Delete completed room from Firebase RTDB */
+    /** Delete room under /rooms/{roomId} plus its /roomCodes index entry. */
     public void deleteRoom(String roomId) {
         if (roomId == null) return;
-        database.child("rooms").child(roomId).removeValue();
+        final DatabaseReference roomRef = database.child("rooms").child(roomId);
+        roomRef.child("code").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String code = snapshot.getValue(String.class);
+                if (code != null) database.child("roomCodes").child(code).removeValue();
+                roomRef.removeValue();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                roomRef.removeValue();
+            }
+        });
     }
 
     /** Save match result and player stats in Firebase RTDB */
@@ -543,5 +818,9 @@ public class FirebaseManager {
 
     public DatabaseReference getDatabaseRef() {
         return database;
+    }
+
+    private String getStringOrEmpty(String value) {
+        return value != null ? value : "";
     }
 }

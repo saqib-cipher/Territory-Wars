@@ -25,9 +25,20 @@ class RoomManager {
     return code;
   }
 
+  /** Generate a room code that does not collide with any existing room code. */
+  generateUniqueCode() {
+    let code = RoomManager.generateCode();
+    let attempts = 0;
+    while (this.findByCode(code) && attempts < 50) {
+      code = RoomManager.generateCode();
+      attempts += 1;
+    }
+    return code;
+  }
+
   createRoom(host, mode = 'ANIMALS', customConfig = null) {
     const roomId = crypto.randomUUID();
-    const code = RoomManager.generateCode();
+    const code = this.generateUniqueCode();
     const modeConfig = getModeConfig(mode);
 
     const room = {

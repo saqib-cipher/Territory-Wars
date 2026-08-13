@@ -40,7 +40,8 @@ public class PlayFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        boolean isSignedIn = user != null && !user.isAnonymous();
+        // Guests (anonymous Firebase accounts) can also create/join online rooms.
+        boolean isSignedIn = user != null;
 
         TextView tvHint = view.findViewById(R.id.tvSignInHint);
         ModernFButton quickMatch = view.findViewById(R.id.quickMatchButton);
@@ -75,28 +76,74 @@ public class PlayFragment extends Fragment {
         String[] modes = new String[]{"ANIMALS 🐾", "FOOD & DISHES 🍔", "COUNTRIES 🌍", "CELEBRITIES 🎬"};
         final GameMode[] modeEnums = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
 
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad / 2, pad, 0);
+
+        final android.widget.EditText etName = new android.widget.EditText(requireContext());
+        etName.setHint("Room name (e.g. Friday Night)");
+        etName.setSingleLine(true);
+        etName.setMaxLines(1);
+        etName.setText("");
+        etName.setPadding(pad / 2, pad / 2, pad / 2, pad / 2);
+        layout.addView(etName, new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        android.widget.TextView tvModeLabel = new android.widget.TextView(requireContext());
+        tvModeLabel.setText("Select Game Mode");
+        tvModeLabel.setTextColor(0xFFF59E0B);
+        tvModeLabel.setTextSize(13);
+        tvModeLabel.setPadding(0, pad, 0, pad / 2);
+        layout.addView(tvModeLabel);
+
+        final int[] selectedModeIndex = {0};
+        final android.widget.RadioGroup rgModes = new android.widget.RadioGroup(requireContext());
+        for (int i = 0; i < modes.length; i++) {
+            android.widget.RadioButton rb = new android.widget.RadioButton(requireContext());
+            rb.setText(modes[i]);
+            rb.setTextColor(0xFFFFFFFF);
+            rb.setId(android.view.View.generateViewId());
+            rgModes.addView(rb);
+            if (i == 0) rb.setChecked(true);
+        }
+        rgModes.setOnCheckedChangeListener((group, checkedId) -> {
+            int count = group.getChildCount();
+            for (int i = 0; i < count; i++) {
+                if (group.getChildAt(i).getId() == checkedId) {
+                    selectedModeIndex[0] = i;
+                    break;
+                }
+            }
+        });
+        layout.addView(rgModes);
+
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Select Online Game Mode")
-                .setItems(modes, (dialog, which) -> {
-                    GameMode selectedMode = modeEnums[which];
-                    createHostRoomForMode(selectedMode);
+                .setTitle("Create Room")
+                .setView(layout)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String roomName = etName.getText().toString().trim();
+                    createHostRoomForMode(modeEnums[selectedModeIndex[0]], roomName);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void createHostRoomForMode(GameMode mode) {
+    private void createHostRoomForMode(GameMode mode, String roomName) {
         String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
         String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
         String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
 
         GuessCardApp.from(requireContext()).getFirebaseManager()
-                .getOrCreateHostRoom(uid, name, avatarFile, mode.name(), hostRoomId -> {
+                .getOrCreateHostRoom(uid, name, avatarFile, roomName, mode.name(), (roomId, roomCode, roomMode) -> {
                     if (getActivity() == null) return;
                     getActivity().runOnUiThread(() -> {
                         Intent intent = new Intent(requireContext(), LobbyActivity.class);
                         intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, hostRoomId);
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, roomName);
                         startActivity(intent);
                     });
                 });
@@ -115,9 +162,10 @@ public class PlayFragment extends Fragment {
         GuessCardApp.from(requireContext()).getFirebaseManager().findOpenRoomByMode(null, (roomId, roomCode, mode) -> {
             if (getActivity() == null) return;
             getActivity().runOnUiThread(() -> {
-                if (roomCode != null && !roomCode.isEmpty()) {
+                if (roomId != null && roomCode != null && !roomCode.isEmpty()) {
                     Toast.makeText(requireContext(), "Joining public room...", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(requireContext(), LobbyActivity.class);
+                    intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
                     intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
                     if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
                     startActivity(intent);
@@ -132,18 +180,27 @@ public class PlayFragment extends Fragment {
     private void launchRandomLobby() {
         GameMode[] modes = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
         GameMode randomMode = modes[new Random().nextInt(modes.length)];
-        String newRoomId = String.valueOf(100000 + new Random().nextInt(900000));
         String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
+        if (uid == null || uid.isEmpty()) {
+            FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
+            if (u != null) uid = u.getUid();
+        }
         String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
         String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
+        String roomName = (name != null && !name.isEmpty()) ? name + "'s Room" : "My Room";
 
         GuessCardApp.from(requireContext()).getFirebaseManager()
-                .createRoomOnFirebase(newRoomId, randomMode.name(), uid, name, avatarFile);
-
-        Intent intent = new Intent(requireContext(), LobbyActivity.class);
-        intent.putExtra(LobbyActivity.EXTRA_MODE, randomMode.name());
-        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, newRoomId);
-        startActivity(intent);
+                .getOrCreateHostRoom(uid, name, avatarFile, roomName, randomMode.name(), (roomId, roomCode, roomMode) -> {
+                    if (getActivity() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
+                        intent.putExtra(LobbyActivity.EXTRA_MODE, randomMode.name());
+                        if (roomId != null) intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
+                        if (roomCode != null) intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
+                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, roomName);
+                        startActivity(intent);
+                    });
+                });
     }
 
     private void showJoinDialog() {

@@ -9,6 +9,7 @@ import java.util.List;
 public class RoomInfo {
     public String roomId;
     public String code;
+    public String name;
     public String mode;
     public String hostId;
     public int maxPlayers = 5;
@@ -49,6 +50,7 @@ public class RoomInfo {
 
         r.roomId = json.optString("roomId");
         r.code = json.optString("code", r.roomId);
+        r.name = json.optString("name", "");
         r.mode = json.optString("mode", "ANIMALS");
         r.hostId = json.optString("hostId");
         r.maxPlayers = json.optInt("maxPlayers", 5);

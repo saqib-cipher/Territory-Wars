@@ -110,6 +110,28 @@ public class PreferenceManager {
     public String getGraphicsQuality() { return "HIGH"; }
     public int getFpsCap() { return 60; }
 
+    // ── PLAYER PROFILE CACHE (disk-backed) ─────────────────────────────────
+
+    private static final String KEY_PROFILE_PREFIX = "cached_profile_";
+
+    /** Persist a profile JSON blob for fast offline reads. */
+    public void cacheProfile(String uid, String profileJson) {
+        if (uid == null || profileJson == null) return;
+        prefs.edit().putString(KEY_PROFILE_PREFIX + uid, profileJson).apply();
+    }
+
+    /** Read a previously cached profile JSON blob, or null. */
+    public String getCachedProfile(String uid) {
+        if (uid == null) return null;
+        return prefs.getString(KEY_PROFILE_PREFIX + uid, null);
+    }
+
+    /** Drop a cached profile (e.g. on profile edits). */
+    public void clearCachedProfile(String uid) {
+        if (uid == null) return;
+        prefs.edit().remove(KEY_PROFILE_PREFIX + uid).apply();
+    }
+
     public void clearSession() {
         prefs.edit()
                 .remove(KEY_TOKEN)

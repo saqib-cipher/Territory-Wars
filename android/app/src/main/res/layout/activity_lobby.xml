@@ -40,6 +40,17 @@
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp">
                 <TextView
+                    android:id="@+id/roomNameText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="My Game Room"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
                     android:id="@+id/roomModeText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

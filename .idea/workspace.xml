@@ -81,22 +81,25 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed nrew">
-      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
+    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="rturtrxj">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/EditProfileActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/EditProfileActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/PlayFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/PlayFragment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/models/RoomInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/models/RoomInfo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/network/PreferenceManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/network/PreferenceManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_play.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_play.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_active_room.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_active_room.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/src/matchmaking/roomManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/matchmaking/roomManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -492,7 +495,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786565487146</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="rturtrxj">
+      <option name="closed" value="true" />
+      <created>1786605986380</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1786605986380</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -515,7 +526,8 @@
     <MESSAGE value="fixed something" />
     <MESSAGE value="fixed" />
     <MESSAGE value="fixed nrew" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed nrew" />
+    <MESSAGE value="rturtrxj" />
+    <option name="LAST_COMMIT_MESSAGE" value="rturtrxj" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="play_dynamic_filters_status">

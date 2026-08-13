@@ -1,6 +1,8 @@
 package glab.guesscard.activities;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,14 +16,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
 import glab.guesscard.firebase.FirebaseManager;
 
 public class FriendsActivity extends BaseActivity {
+
+    private static final long SEARCH_DEBOUNCE_MS = 350L;
 
     private EditText etSearch;
     private RecyclerView rvFriends;
@@ -30,6 +36,9 @@ public class FriendsActivity extends BaseActivity {
     private TextView tvSearchHeader;
     private FirebaseManager firebaseManager;
     private String currentUid;
+    private final Set<String> friendUids = new HashSet<>();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -49,13 +58,13 @@ public class FriendsActivity extends BaseActivity {
         if (btnClose != null) btnClose.setOnClickListener(v -> finish());
 
         ModernFButton btnSearch = findViewById(R.id.btnSearch);
-        if (btnSearch != null) btnSearch.setOnClickListener(v -> performSearch());
+        if (btnSearch != null) btnSearch.setOnClickListener(v -> debounceSearch(0L));
 
         if (etSearch != null) {
             etSearch.addTextChangedListener(new android.text.TextWatcher() {
                 @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    performSearch();
+                    debounceSearch(SEARCH_DEBOUNCE_MS);
                 }
                 @Override public void afterTextChanged(android.text.Editable s) {}
             });
@@ -67,9 +76,28 @@ public class FriendsActivity extends BaseActivity {
         loadFriends();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (searchRunnable != null) mainHandler.removeCallbacks(searchRunnable);
+    }
+
+    private void debounceSearch(long delayMs) {
+        if (searchRunnable != null) mainHandler.removeCallbacks(searchRunnable);
+        searchRunnable = this::performSearch;
+        mainHandler.postDelayed(searchRunnable, delayMs);
+    }
+
     private void loadFriends() {
         if (currentUid == null) return;
         firebaseManager.getFriends(currentUid, list -> runOnUiThread(() -> {
+            friendUids.clear();
+            if (list != null) {
+                for (Map<String, Object> f : list) {
+                    Object uid = f.get("uid");
+                    if (uid != null) friendUids.add(String.valueOf(uid));
+                }
+            }
             if (list == null || list.isEmpty()) {
                 if (tvNoFriends != null) tvNoFriends.setVisibility(View.VISIBLE);
                 if (rvFriends != null) rvFriends.setVisibility(View.GONE);
@@ -87,8 +115,10 @@ public class FriendsActivity extends BaseActivity {
         if (etSearch == null) return;
         String query = etSearch.getText().toString().trim();
         View tvMyFriendsHeader = findViewById(R.id.tvMyFriendsHeader);
+        View tvNoFriendsView = findViewById(R.id.tvNoFriends);
 
         if (query.isEmpty()) {
+            // Restore My Friends list
             if (rvSearch != null) rvSearch.setVisibility(View.GONE);
             if (tvSearchHeader != null) tvSearchHeader.setVisibility(View.GONE);
             if (tvMyFriendsHeader != null) tvMyFriendsHeader.setVisibility(View.VISIBLE);
@@ -96,12 +126,18 @@ public class FriendsActivity extends BaseActivity {
             return;
         }
 
-        // Hide My Friends list section when searching
+        // Hide My Friends list entirely while searching, show search results instead
         if (tvMyFriendsHeader != null) tvMyFriendsHeader.setVisibility(View.GONE);
-        if (tvNoFriends != null) tvNoFriends.setVisibility(View.GONE);
+        if (tvNoFriendsView != null) tvNoFriendsView.setVisibility(View.GONE);
         if (rvFriends != null) rvFriends.setVisibility(View.GONE);
+        if (tvSearchHeader != null) {
+            tvSearchHeader.setVisibility(View.VISIBLE);
+            tvSearchHeader.setText("Searching for: '" + query + "'");
+        }
+        if (rvSearch != null) rvSearch.setVisibility(View.GONE);
 
-        firebaseManager.searchUsers(query, list -> runOnUiThread(() -> {
+        firebaseManager.searchUsers(currentUid, query, list -> runOnUiThread(() -> {
+            if (isFinishing()) return;
             if (list == null || list.isEmpty()) {
                 if (rvSearch != null) rvSearch.setVisibility(View.GONE);
                 if (tvSearchHeader != null) {
@@ -135,8 +171,7 @@ public class FriendsActivity extends BaseActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(
-                    android.R.layout.simple_list_item_2, parent, false);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_friend, parent, false);
             return new ViewHolder(v);
         }
 
@@ -147,28 +182,43 @@ public class FriendsActivity extends BaseActivity {
             String name = (String) item.getOrDefault("displayName", "Player");
             String status = (String) item.getOrDefault("status", "Online");
 
-            holder.text1.setText(name + " (" + status + ")");
-            holder.text1.setTextColor(android.graphics.Color.WHITE);
-            holder.text2.setText("UID: " + friendUid + " | Tap to view profile");
-            holder.text2.setTextColor(android.graphics.Color.parseColor("#94A3B8"));
+            holder.tvName.setText(name);
+            holder.tvStatus.setText("UID: " + friendUid + " | " + status);
+            boolean alreadyFriend = currentUid != null && friendUids.contains(friendUid);
+
+            if (isMyFriendsList) {
+                holder.btnAction.setText("Remove");
+                holder.btnAction.setEnabled(true);
+                holder.btnAction.setAlpha(1.0f);
+            } else if (alreadyFriend) {
+                holder.btnAction.setText("Added");
+                holder.btnAction.setEnabled(false);
+                holder.btnAction.setAlpha(0.4f);
+            } else {
+                holder.btnAction.setText("Add");
+                holder.btnAction.setEnabled(true);
+                holder.btnAction.setAlpha(1.0f);
+            }
+
+            holder.btnAction.setOnClickListener(v -> {
+                if (friendUid == null || friendUid.isEmpty() || currentUid == null) return;
+                if (isMyFriendsList) {
+                    firebaseManager.removeFriend(currentUid, friendUid);
+                    friendUids.remove(friendUid);
+                    Toast.makeText(FriendsActivity.this, "Removed friend: " + name, Toast.LENGTH_SHORT).show();
+                } else if (!friendUids.contains(friendUid)) {
+                    firebaseManager.addFriend(currentUid, friendUid);
+                    friendUids.add(friendUid);
+                    Toast.makeText(FriendsActivity.this, "Added friend: " + name, Toast.LENGTH_SHORT).show();
+                }
+                // Refresh the visible list (friends list if not searching, results otherwise)
+                performSearch();
+            });
 
             holder.itemView.setOnClickListener(v -> {
                 if (friendUid != null && !friendUid.isEmpty()) {
                     startActivity(PublicProfileActivity.intent(FriendsActivity.this, friendUid));
                 }
-            });
-
-            holder.itemView.setOnLongClickListener(v -> {
-                if (isMyFriendsList) {
-                    firebaseManager.removeFriend(currentUid, friendUid);
-                    Toast.makeText(FriendsActivity.this, "Removed friend: " + name, Toast.LENGTH_SHORT).show();
-                    loadFriends();
-                } else {
-                    firebaseManager.addFriend(currentUid, friendUid);
-                    Toast.makeText(FriendsActivity.this, "Added friend: " + name, Toast.LENGTH_SHORT).show();
-                    loadFriends();
-                }
-                return true;
             });
         }
 
@@ -178,11 +228,14 @@ public class FriendsActivity extends BaseActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView text1, text2;
+            TextView tvName, tvStatus;
+            com.google.android.material.button.MaterialButton btnAction;
+
             ViewHolder(View itemView) {
                 super(itemView);
-                text1 = itemView.findViewById(android.R.id.text1);
-                text2 = itemView.findViewById(android.R.id.text2);
+                tvName = itemView.findViewById(R.id.friendName);
+                tvStatus = itemView.findViewById(R.id.friendStatus);
+                btnAction = itemView.findViewById(R.id.friendAction);
             }
         }
     }

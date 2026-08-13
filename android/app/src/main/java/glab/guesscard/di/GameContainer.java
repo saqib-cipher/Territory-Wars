@@ -26,7 +26,7 @@ public class GameContainer {
     public GameContainer(Context context) {
         Context appCtx = context.getApplicationContext();
         this.preferences = new PreferenceManager(appCtx);
-        this.firebaseManager = new FirebaseManager();
+        this.firebaseManager = new FirebaseManager(this.preferences);
         this.repository = new Repository(preferences, firebaseManager);
         this.socketClient = new GameSocketClient(preferences);
         this.adManager = new AdManager(appCtx);

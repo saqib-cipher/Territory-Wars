@@ -49,13 +49,18 @@ import java.util.Map;
 public class LobbyActivity extends BaseActivity implements GameSocketListener {
     public static final String EXTRA_MODE = "extra_mode";
     public static final String EXTRA_ROOM_CODE = "extra_room_code";
+    public static final String EXTRA_ROOM_ID = "extra_room_id";
+    public static final String EXTRA_ROOM_NAME = "extra_room_name";
 
     private GameSocketClient socket;
     private FirebaseManager firebaseManager;
     private RoomInfo room;
     private String currentRoomId;
+    private String currentRoomCode;   // unique join code from /rooms/{hostUid}/code
+    private String currentRoomName;
 
     private TextView roomCodeText;
+    private TextView roomNameText;
     private TextView roomModeText;
     private LinearLayout avatarContainer;
     private RecyclerView playersList;
@@ -65,6 +70,10 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     private boolean isLocallyReady = false;
     private DatabaseReference roomPlayersRef;
     private ChildEventListener playersListener;
+    private ValueEventListener statusListener;
+    private ValueEventListener codeListener;
+    private ValueEventListener hostUidListener;
+    private ValueEventListener nameListener;
 
     private android.os.CountDownTimer startCountdownTimer;
     private boolean isCountingDown = false;
@@ -80,6 +89,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         socket.setListener(this);
 
         roomCodeText = findViewById(R.id.roomCodeText);
+        roomNameText = findViewById(R.id.roomNameText);
         roomModeText = findViewById(R.id.roomModeText);
         playersList = findViewById(R.id.playersList);
         rvInviteFriends = findViewById(R.id.rvInviteFriends);
@@ -129,28 +139,86 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
         if (!socket.isConnected()) socket.connect();
 
-        String mode = getIntent().getStringExtra(EXTRA_MODE);
-        String code = getIntent().getStringExtra(EXTRA_ROOM_CODE);
+        initRoomFromIntent();
+        setupInviteListener();
+    }
 
-        if (code != null && !code.isEmpty()) {
-            currentRoomId = code;
+    /**
+     * Resolve the room from intent extras.
+     * Room root node is the HOST UID: /rooms/{hostUid} with its unique code at /rooms/{hostUid}/code.
+     */
+    private void initRoomFromIntent() {
+        final String mode = getIntent().getStringExtra(EXTRA_MODE);
+        String roomIdExtra = getIntent().getStringExtra(EXTRA_ROOM_ID);
+        String codeExtra = getIntent().getStringExtra(EXTRA_ROOM_CODE);
+        String roomNameExtra = getIntent().getStringExtra(EXTRA_ROOM_NAME);
+        currentRoomName = roomNameExtra;
+
+        if (roomIdExtra != null && !roomIdExtra.isEmpty()) {
+            // Already know the host-uid room node (host created it or invite carried it).
+            currentRoomId = roomIdExtra;
+            currentRoomCode = codeExtra != null ? codeExtra : null;
+            if (roomCodeText != null && currentRoomCode != null) roomCodeText.setText(currentRoomCode);
             listenToRoomPresence(currentRoomId);
-            if (socket != null && socket.isConnected()) socket.joinRoomByCode(code);
+            if (socket != null && socket.isConnected()) {
+                if (currentRoomCode != null && !currentRoomCode.isEmpty()) socket.joinRoomByCode(currentRoomCode);
+            }
+        } else if (codeExtra != null && !codeExtra.isEmpty()) {
+            // Resolve join code -> host UID root node, then verify a slot is available.
+            firebaseManager.findRoomByCode(codeExtra, (rId, rCode, rMode) -> runOnUiThread(() -> {
+                if (rId == null) {
+                    Toast.makeText(LobbyActivity.this, "Room not found. The code may be invalid or the room was closed.", Toast.LENGTH_LONG).show();
+                    finish();
+                    return;
+                }
+                firebaseManager.hasRoomSlot(rId, hasSlot -> runOnUiThread(() -> {
+                    if (isFinishing()) return;
+                    if (hasSlot == null || !hasSlot) {
+                        Toast.makeText(LobbyActivity.this, "Room is full or already in progress. Try another room.", Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+                    currentRoomId = rId;
+                    currentRoomCode = rCode != null ? rCode : codeExtra;
+                    if (room == null) {
+                        room = new RoomInfo();
+                        room.roomId = currentRoomId;
+                    }
+                    room.code = currentRoomCode;
+                    room.mode = mode != null ? mode : (rMode != null ? rMode : "ANIMALS");
+                    if (roomCodeText != null) roomCodeText.setText(currentRoomCode);
+                    listenToRoomPresence(currentRoomId);
+                    if (socket != null && socket.isConnected()) socket.joinRoomByCode(currentRoomCode);
+                }));
+            }));
         } else {
+            // Host flow: create/reuse room under /rooms/{hostUid}/.
             String hostUid = prefs().getUserId();
             String hostName = prefs().getUsername();
             String avatarFile = prefs().getAvatarFileName();
-            String selectedMode = mode != null && !mode.isEmpty() ? mode : "ANIMALS";
-            firebaseManager.getOrCreateHostRoom(hostUid, hostName, avatarFile, selectedMode, roomCode -> {
+            final String selectedMode = mode != null && !mode.isEmpty() ? mode : "ANIMALS";
+            firebaseManager.getOrCreateHostRoom(hostUid, hostName, avatarFile, currentRoomName, selectedMode, (rId, roomCode, rMode) -> {
                 runOnUiThread(() -> {
-                    currentRoomId = roomCode;
+                    if (rId == null) {
+                        Toast.makeText(LobbyActivity.this, "Could not create room. Please sign in again.", Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+                    currentRoomId = rId;
+                    currentRoomCode = roomCode;
+                    if (room == null) {
+                        room = new RoomInfo();
+                        room.roomId = currentRoomId;
+                    }
+                    room.roomId = currentRoomId;
+                    room.code = roomCode;
+                    room.mode = rMode != null ? rMode : selectedMode;
+                    if (roomCodeText != null) roomCodeText.setText(roomCode);
                     listenToRoomPresence(currentRoomId);
                 });
             });
             if (socket != null && socket.isConnected()) socket.createRoom(selectedMode, null);
         }
-
-        setupInviteListener();
     }
 
     private void setupInviteListener() {
@@ -162,6 +230,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                         .setMessage(sender + " invited you to join their game room (" + code + ").")
                         .setPositiveButton("Join", (d, w) -> {
                             Intent intent = new Intent(LobbyActivity.this, LobbyActivity.class);
+                            if (rId != null && !rId.isEmpty()) intent.putExtra(EXTRA_ROOM_ID, rId);
                             intent.putExtra(EXTRA_ROOM_CODE, code);
                             startActivity(intent);
                             finish();
@@ -241,7 +310,8 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         }
 
         // Status Listener for match start
-        firebaseManager.getRoomRef(roomId).child("status").addValueEventListener(new ValueEventListener() {
+        if (statusListener != null) firebaseManager.getRoomRef(roomId).child("status").removeEventListener(statusListener);
+        statusListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String status = snapshot.getValue(String.class);
@@ -250,23 +320,44 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
+        };
+        firebaseManager.getRoomRef(roomId).child("status").addValueEventListener(statusListener);
 
-        // Code Listener for unique room code from /rooms/{roomId}/code
-        firebaseManager.getRoomRef(roomId).child("code").addValueEventListener(new ValueEventListener() {
+        // Code Listener for unique room code from /rooms/{hostUid}/code
+        if (codeListener != null) firebaseManager.getRoomRef(roomId).child("code").removeEventListener(codeListener);
+        codeListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String uniqueCode = snapshot.getValue(String.class);
                 if (uniqueCode != null && !uniqueCode.isEmpty()) {
+                    currentRoomCode = uniqueCode;
                     if (room != null) room.code = uniqueCode;
                     if (roomCodeText != null) roomCodeText.setText(uniqueCode);
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
+        };
+        firebaseManager.getRoomRef(roomId).child("code").addValueEventListener(codeListener);
 
-        // Host UID Listener from /rooms/{roomId}/hostUid
-        firebaseManager.getRoomRef(roomId).child("hostUid").addValueEventListener(new ValueEventListener() {
+        // Room Name Listener from /rooms/{hostUid}/name
+        if (nameListener != null) firebaseManager.getRoomRef(roomId).child("name").removeEventListener(nameListener);
+        nameListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String roomName = snapshot.getValue(String.class);
+                if (roomName != null && !roomName.isEmpty()) {
+                    currentRoomName = roomName;
+                    if (room != null) room.name = roomName;
+                    if (roomNameText != null) roomNameText.setText(roomName);
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        firebaseManager.getRoomRef(roomId).child("name").addValueEventListener(nameListener);
+
+        // Host UID Listener from /rooms/{hostUid}/hostUid
+        if (hostUidListener != null) firebaseManager.getRoomRef(roomId).child("hostUid").removeEventListener(hostUidListener);
+        hostUidListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String hUid = snapshot.getValue(String.class);
@@ -275,7 +366,8 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
+        };
+        firebaseManager.getRoomRef(roomId).child("hostUid").addValueEventListener(hostUidListener);
 
         if (roomPlayersRef != null && playersListener != null) {
             roomPlayersRef.removeEventListener(playersListener);
@@ -312,7 +404,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                     if (room == null) {
                         room = new RoomInfo();
                         room.roomId = roomId;
-                        room.code = roomId;
+                        room.code = currentRoomCode != null ? currentRoomCode : "------";
                         room.mode = getIntent().getStringExtra(EXTRA_MODE);
                     }
                     ensureLocalPlayerInList(room);
@@ -350,7 +442,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                                 if (room == null) {
                                     room = new RoomInfo();
                                     room.roomId = roomId;
-                                    room.code = roomId;
+                                    room.code = currentRoomCode != null ? currentRoomCode : "------";
                                     room.mode = getIntent().getStringExtra(EXTRA_MODE);
                                 }
                                 room.players = list;
@@ -373,8 +465,14 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         String hostUid = room.hostId != null && !room.hostId.isEmpty() ? room.hostId : currentRoomId;
         ensureHostPlayerInList(room, hostUid);
 
-        if (room.code == null || room.code.isEmpty() || room.code.startsWith("GC-")) {
-            room.code = currentRoomId != null ? currentRoomId : String.valueOf(100000 + new java.util.Random().nextInt(900000));
+        if (room.code == null || room.code.isEmpty()) {
+            room.code = currentRoomCode != null ? currentRoomCode : "------";
+        }
+
+        if (roomNameText != null) {
+            String displayName = room.name != null && !room.name.isEmpty()
+                    ? room.name : (currentRoomName != null && !currentRoomName.isEmpty() ? currentRoomName : null);
+            if (displayName != null) roomNameText.setText(displayName);
         }
 
         if (roomCodeText != null) roomCodeText.setText(room.code);
@@ -516,10 +614,25 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     @Override
     public void onRoomJoined(RoomInfo room) {
         this.room = room;
-        if (room != null) this.currentRoomId = room.roomId;
+        // The socket room id is a server UUID; NEVER use it as the Firebase room node.
+        // The Firebase room node is the host UID and comes from the intent extras.
         runOnUiThread(() -> {
+            if (room != null) {
+                if (room.code == null || room.code.isEmpty()) room.code = currentRoomCode;
+                if (room.mode == null) room.mode = getIntent().getStringExtra(EXTRA_MODE);
+                if (currentRoomId == null || currentRoomId.isEmpty()) {
+                    String roomIdExtra = getIntent().getStringExtra(EXTRA_ROOM_ID);
+                    if (roomIdExtra != null && !roomIdExtra.isEmpty()) {
+                        currentRoomId = roomIdExtra;
+                    } else {
+                        // Host flow fallback: the Firebase room root is the host UID.
+                        currentRoomId = prefs().getUserId();
+                    }
+                }
+                room.roomId = currentRoomId;
+            }
             updateRoomUI(room);
-            listenToRoomPresence(currentRoomId);
+            if (currentRoomId != null) listenToRoomPresence(currentRoomId);
         });
     }
 

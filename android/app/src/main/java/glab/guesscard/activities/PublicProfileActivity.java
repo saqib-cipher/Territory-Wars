@@ -3,7 +3,9 @@ package glab.guesscard.activities;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -35,12 +37,38 @@ public class PublicProfileActivity extends BaseActivity {
         TextView tvWins = findViewById(R.id.tvPublicWins);
         TextView tvRate = findViewById(R.id.tvPublicWinRate);
         ModernFButton btnClose = findViewById(R.id.btnClosePublicProfile);
+        final ModernFButton btnFriend = findViewById(R.id.btnFriendAction);
 
         if (btnClose != null) btnClose.setOnClickListener(v -> finish());
 
+        String myUid = prefs().getUserId();
+        FirebaseManager mgr = container().getFirebaseManager();
+
         if (targetUid != null) {
             tvUid.setText("UID: " + targetUid);
-            container().getFirebaseManager().getUserProfile(targetUid, data -> {
+
+            if (btnFriend != null) {
+                if (myUid != null && myUid.equals(targetUid)) {
+                    btnFriend.setVisibility(View.GONE);
+                } else {
+                    btnFriend.setVisibility(View.VISIBLE);
+                    refreshFriendState(btnFriend, myUid, targetUid);
+                    btnFriend.setOnClickListener(v -> {
+                        if (myUid == null) return;
+                        boolean isFriendNow = btnFriend.getTag() != null && Boolean.TRUE.equals(btnFriend.getTag());
+                        if (isFriendNow) {
+                            mgr.removeFriend(myUid, targetUid);
+                            Toast.makeText(this, "Friend removed", Toast.LENGTH_SHORT).show();
+                        } else {
+                            mgr.addFriend(myUid, targetUid);
+                            Toast.makeText(this, "Friend added!", Toast.LENGTH_SHORT).show();
+                        }
+                        refreshFriendState(btnFriend, myUid, targetUid);
+                    });
+                }
+            }
+
+            mgr.getUserProfile(targetUid, data -> {
                 if (data != null) {
                     runOnUiThread(() -> {
                         String name = (String) data.getOrDefault("displayName", "Player");
@@ -69,5 +97,19 @@ public class PublicProfileActivity extends BaseActivity {
                 }
             });
         }
+    }
+
+    private void refreshFriendState(ModernFButton btnFriend, String myUid, String targetUid) {
+        container().getFirebaseManager().isFriend(myUid, targetUid, isFriend -> runOnUiThread(() -> {
+            if (btnFriend == null) return;
+            btnFriend.setTag(isFriend);
+            if (isFriend != null && isFriend) {
+                btnFriend.setText("Remove Friend");
+                btnFriend.setAlpha(1.0f);
+            } else {
+                btnFriend.setText("Add Friend");
+                btnFriend.setAlpha(1.0f);
+            }
+        }));
     }
 }
