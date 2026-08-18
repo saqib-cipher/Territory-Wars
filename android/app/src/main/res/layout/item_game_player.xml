@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/playerCardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="@drawable/bg_player_circle">
+
+    <FrameLayout
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center_horizontal">
+
+        <!-- Turn highlight glow ring -->
+        <View
+            android:id="@+id/turnHighlightRing"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/shape_avatar_ring"
+            android:visibility="gone" />
+
+        <!-- Avatar Image -->
+        <ImageView
+            android:id="@+id/ivPlayerAvatar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_profile" />
+
+        <!-- Crown Badge for Answerer / Host -->
+        <ImageView
+            android:id="@+id/ivCrownBadge"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="top|end"
+            android:src="@drawable/ic_crown"
+            android:visibility="gone" />
+
+        <!-- Speaking Mic Indicator (Flickering Animation) -->
+        <ImageView
+            android:id="@+id/ivSpeakingMic"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/circle"
+            android:backgroundTint="#10B981"
+            android:padding="2dp"
+            android:src="@drawable/ic_mic"
+            android:visibility="gone" />
+
+        <!-- Muted Badge -->
+        <ImageView
+            android:id="@+id/ivMuteBadge"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="bottom|start"
+            android:background="@drawable/circle"
+            android:backgroundTint="#EF4444"
+            android:padding="2dp"
+            android:src="@drawable/ic_mic_off"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <!-- Player Name -->
+    <TextView
+        android:id="@+id/tvPlayerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Player"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <!-- Player Score -->
+    <TextView
+        android:id="@+id/tvPlayerScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 pts"
+        android:textColor="#F59E0B"
+        android:textSize="9sp" />
+
+</LinearLayout>

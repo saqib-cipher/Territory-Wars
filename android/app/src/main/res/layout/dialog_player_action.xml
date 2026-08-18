@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/shape_glass_card"
+    android:gravity="center_horizontal">
+
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:id="@+id/ivDialogAvatar"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_profile" />
+
+        <ImageView
+            android:id="@+id/ivDialogCrown"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="top|end"
+            android:src="@drawable/ic_crown"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvDialogUsername"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Player Name"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvDialogScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Score: 100 pts"
+        android:textColor="#F59E0B"
+        android:textSize="12sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Mute / Unmute Button -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnDialogMute"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="Mute Player"
+            android:textSize="12sp" />
+
+        <!-- Add Friend Button -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnDialogAddFriend"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="+ Add Friend"
+            android:textSize="12sp" />
+
+        <!-- Report Player Button -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnDialogReport"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="Report Player"
+            android:textSize="12sp" />
+
+        <!-- Host Kick Button (only visible if host & player inactive) -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnDialogKick"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="🚫 Kick Inactive Player"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Close Button -->
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnDialogClose"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="Close"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
+</LinearLayout>

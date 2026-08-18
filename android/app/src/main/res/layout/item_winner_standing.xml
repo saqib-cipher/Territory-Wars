@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/shape_glass_card">
+
+    <!-- Rank Medal / Number -->
+    <TextView
+        android:id="@+id/tvStandingRank"
+        android:layout_width="54dp"
+        android:layout_height="wrap_content"
+        android:text="1st 👑"
+        android:textColor="#F59E0B"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <!-- Avatar Image -->
+    <ImageView
+        android:id="@+id/ivStandingAvatar"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/ic_profile" />
+
+    <!-- Name & Bonus Breakdown Column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvStandingName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Player Name"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvStandingBreakdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Base: 100 • Bonus: +150 (5 Qs)"
+            android:textColor="#94A3B8"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+
+    <!-- Total Final Score -->
+    <TextView
+        android:id="@+id/tvStandingTotalScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="250 pts"
+        android:textColor="#F59E0B"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

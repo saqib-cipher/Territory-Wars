@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:background="@drawable/shape_glass_card"
+    android:padding="24dp"
+    android:layout_margin="16dp">
+
+    <!-- Icon Badge -->
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚪"
+            android:textSize="36sp"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvAbandonedTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Match Incomplete"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Dialog Message -->
+    <TextView
+        android:id="@+id/tvAbandonedMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="All other players have left the match. As the host, you can return to the lobby to wait for new players, or close the room."
+        android:textColor="#94A3B8"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:lineSpacingExtra="3dp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Host Action Container -->
+    <LinearLayout
+        android:id="@+id/containerHostActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnReturnToLobby"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="🚪 Return to Lobby"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnCloseRoom"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="✖ Close &amp; Delete Room"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Non-Host Action Container -->
+    <LinearLayout
+        android:id="@+id/containerPlayerActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnBackToHome"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="🏠 Back to Home"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>
