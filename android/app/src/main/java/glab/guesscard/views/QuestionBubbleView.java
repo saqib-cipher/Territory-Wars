@@ -123,6 +123,9 @@ public class QuestionBubbleView extends LinearLayout {
             } else if (ansUpper.contains("NO")) {
                 badgeBg.setColor(Color.parseColor("#EF4444"));
                 answerBadge.setTextColor(Color.WHITE);
+            } else if (ansUpper.contains("MAYBE")) {
+                badgeBg.setColor(Color.parseColor("#F59E0B"));
+                answerBadge.setTextColor(Color.WHITE);
             } else {
                 badgeBg.setColor(Color.parseColor("#64748B"));
                 answerBadge.setTextColor(Color.WHITE);

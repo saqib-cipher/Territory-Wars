@@ -28,8 +28,10 @@ public class RoomInfo {
         public String id;
         public String question;
         public String askedBy;
+        public String askerUid;
         public String askerName;   // Display name of the person who asked
         public String answer;       // 'YES 👍', 'NO 👎', or null
+        public String answererUid;
         public String answererName; // Display name of the person who answered
     }
 

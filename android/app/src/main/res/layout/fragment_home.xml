@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -47,13 +48,48 @@
             </LinearLayout>
         </FrameLayout>
 
+        <!-- ── QUICK ACTIONS ROW ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginTop="-24dp"
+            android:layout_marginBottom="16dp"
+            android:gravity="center">
+
+            <!-- Quick Match Action Card -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnHomeQuickMatch"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="⚡ Quick Match"
+                android:textSize="12sp" />
+
+            <!-- Create Room Action Card -->
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnHomeCreateRoom"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="➕ Create Room"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
         <!-- ── OFFLINE PRACTICE MODE SECTION (Visible when offline) ── -->
         <LinearLayout
             android:id="@+id/offlinePracticeContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginBottom="16dp"
             android:visibility="gone">
 
             <TextView
@@ -64,7 +100,7 @@
                 android:textSize="12sp"
                 android:textAllCaps="true"
                 android:letterSpacing="0.12"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="8dp" />
 
             <FrameLayout
                 android:id="@+id/btnOfflinePractice"
@@ -91,7 +127,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="PRACTICE MODE"
+                            android:text="PRACTICE MODE 🎮"
                             android:textColor="#FFFFFF"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -99,7 +135,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Play offline practice match"
+                            android:text="Play solo practice match with smart bot"
                             android:textColor="#FFFFFFAA"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -107,7 +143,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Start Practice"
+                        android:text="Start ▶"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -122,36 +158,90 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- ── LIVE ACTIVE ROOMS HEADER ── -->
-            <TextView
+            <!-- Header Row with Live Badge and Total Count -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="10dp"
-                android:text="Live Active Game Rooms"
-                android:textColor="#38BDF8"
-                android:textSize="14sp"
-                android:textAllCaps="true"
-                android:letterSpacing="0.12"
-                android:textStyle="bold" />
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/tvLiveRoomsTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Live Game Rooms 🔴"
+                    android:textColor="#38BDF8"
+                    android:textSize="15sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLiveRoomsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 Active"
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:background="#1E293B"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp" />
+
+            </LinearLayout>
 
             <!-- Empty State for Active Rooms -->
-            <TextView
+            <LinearLayout
                 android:id="@+id/tvNoActiveRooms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 android:layout_marginBottom="12dp"
                 android:background="@drawable/shape_glass_card"
-                android:padding="20dp"
-                android:text="No active public rooms right now.\nTap Create Room in Play section to start one!"
-                android:textColor="#94A3B8"
-                android:textSize="14sp"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:visibility="gone" />
+                android:padding="24dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌐"
+                    android:textSize="36sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Public Rooms Available"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Be the first to start a party room and invite your friends!"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp" />
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnEmptyCreateRoom"
+                    android:layout_width="200dp"
+                    android:layout_height="48dp"
+                    android:text="✨ Create a Room" />
+
+            </LinearLayout>
 
             <!-- Active Rooms RecyclerView -->
             <androidx.recyclerview.widget.RecyclerView

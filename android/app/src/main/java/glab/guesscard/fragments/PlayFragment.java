@@ -10,9 +10,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -119,7 +118,7 @@ public class PlayFragment extends Fragment {
         });
         layout.addView(rgModes);
 
-        new MaterialAlertDialogBuilder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Create Room")
                 .setView(layout)
                 .setPositiveButton("Create", (dialog, which) -> {
@@ -158,7 +157,7 @@ public class PlayFragment extends Fragment {
     }
 
     private void performQuickMatch() {
-        Toast.makeText(requireContext(), "Searching for available public room...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), "Scanning for open public rooms...", Toast.LENGTH_SHORT).show();
         GuessCardApp.from(requireContext()).getFirebaseManager().findOpenRoomByMode(null, (roomId, roomCode, mode) -> {
             if (getActivity() == null) return;
             getActivity().runOnUiThread(() -> {
@@ -170,8 +169,7 @@ public class PlayFragment extends Fragment {
                     if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
                     startActivity(intent);
                 } else {
-                    Toast.makeText(requireContext(), "No open room found. Creating new room...", Toast.LENGTH_SHORT).show();
-                    launchRandomLobby();
+                    Toast.makeText(requireContext(), "No open public room with available slots found. Use 'Create Room' to host a game!", Toast.LENGTH_LONG).show();
                 }
             });
         });
@@ -206,7 +204,7 @@ public class PlayFragment extends Fragment {
     private void showJoinDialog() {
         android.widget.EditText input = new android.widget.EditText(requireContext());
         input.setHint("6-digit numeric room code");
-        new MaterialAlertDialogBuilder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Join Room")
                 .setView(input)
                 .setPositiveButton("Join", (dialog, which) -> {

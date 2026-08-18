@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import glab.guesscard.GuessCardApp;
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
-import glab.guesscard.activities.PublicProfileActivity;
 import glab.guesscard.models.RoomInfo;
 import glab.guesscard.utils.AvatarManager;
 
@@ -22,8 +21,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.VH> {
+
+    public interface OnPlayerClickListener {
+        void onPlayerClick(RoomInfo.LobbyPlayer player);
+    }
+
     private final List<RoomInfo.LobbyPlayer> players = new ArrayList<>();
     private String hostUid = "";
+    private OnPlayerClickListener onPlayerClickListener;
+
+    public void setOnPlayerClickListener(OnPlayerClickListener listener) {
+        this.onPlayerClickListener = listener;
+    }
 
     public void submitList(List<RoomInfo.LobbyPlayer> list, String hostUid) {
         this.hostUid = hostUid != null ? hostUid : "";
@@ -75,21 +84,54 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
             holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
         }
 
-        if (isSelf) {
+        if (isSelf || u.userId == null || u.userId.isEmpty()) {
             holder.btnAddFriend.setVisibility(View.GONE);
         } else {
-            holder.btnAddFriend.setVisibility(View.VISIBLE);
-            holder.btnAddFriend.setOnClickListener(v -> {
-                if (u.userId != null && currentUid != null) {
-                    GuessCardApp.from(context).getFirebaseManager().addFriend(currentUid, u.userId);
-                    Toast.makeText(context, "Added " + name + " to friends list", Toast.LENGTH_SHORT).show();
-                }
+            GuessCardApp.from(context).getFirebaseManager().checkFriendshipStatus(currentUid, u.userId, status -> {
+                if (holder.itemView == null) return;
+                holder.itemView.post(() -> {
+                    if (status == glab.guesscard.firebase.FirebaseManager.FriendshipStatus.SELF) {
+                        holder.btnAddFriend.setVisibility(View.GONE);
+                    } else if (status == glab.guesscard.firebase.FirebaseManager.FriendshipStatus.FRIENDS) {
+                        holder.btnAddFriend.setVisibility(View.VISIBLE);
+                        holder.btnAddFriend.setText("Friends ✓");
+                        holder.btnAddFriend.setEnabled(false);
+                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
+                        holder.btnAddFriend.setShadowHeightDp(0f);
+                    } else if (status == glab.guesscard.firebase.FirebaseManager.FriendshipStatus.REQUEST_SENT) {
+                        holder.btnAddFriend.setVisibility(View.VISIBLE);
+                        holder.btnAddFriend.setText("Request Sent");
+                        holder.btnAddFriend.setEnabled(false);
+                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#94A3B8"));
+                        holder.btnAddFriend.setShadowHeightDp(0f);
+                    } else {
+                        holder.btnAddFriend.setVisibility(View.VISIBLE);
+                        holder.btnAddFriend.setText("+ Add Friend");
+                        holder.btnAddFriend.setEnabled(true);
+                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#3B82F6"));
+                        holder.btnAddFriend.setTextColor(android.graphics.Color.WHITE);
+                        holder.btnAddFriend.setShadowHeightDp(2f);
+                        holder.btnAddFriend.setOnClickListener(v -> {
+                            if (u.userId != null && currentUid != null) {
+                                GuessCardApp.from(context).getFirebaseManager().addFriend(currentUid, u.userId);
+                                holder.btnAddFriend.setText("Friends ✓");
+                                holder.btnAddFriend.setEnabled(false);
+                                holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                                holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
+                                holder.btnAddFriend.setShadowHeightDp(0f);
+                                Toast.makeText(context, "Added " + name + " to friends list", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
             });
         }
 
         holder.itemView.setOnClickListener(v -> {
-            if (u.userId != null && !u.userId.isEmpty()) {
-                context.startActivity(PublicProfileActivity.intent(context, u.userId));
+            if (onPlayerClickListener != null) {
+                onPlayerClickListener.onPlayerClick(u);
             }
         });
     }

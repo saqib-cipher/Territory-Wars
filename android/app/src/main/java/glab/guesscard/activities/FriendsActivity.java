@@ -136,6 +136,26 @@ public class FriendsActivity extends BaseActivity {
         }
         if (rvSearch != null) rvSearch.setVisibility(View.GONE);
 
+        // Always re-fetch friendUids fresh from Firebase before displaying search results
+        // so the Add button is correctly hidden for already-added friends
+        if (currentUid != null) {
+            firebaseManager.getFriends(currentUid, friendList -> {
+                friendUids.clear();
+                if (friendList != null) {
+                    for (java.util.Map<String, Object> f : friendList) {
+                        Object fUid = f.get("uid");
+                        if (fUid != null) friendUids.add(String.valueOf(fUid));
+                    }
+                }
+                // Now run the search with up-to-date friendUids
+                doSearchQuery(query);
+            });
+        } else {
+            doSearchQuery(query);
+        }
+    }
+
+    private void doSearchQuery(String query) {
         firebaseManager.searchUsers(currentUid, query, list -> runOnUiThread(() -> {
             if (isFinishing()) return;
             if (list == null || list.isEmpty()) {
@@ -156,6 +176,7 @@ public class FriendsActivity extends BaseActivity {
             }
         }));
     }
+
 
     // ── ADAPTER ─────────────────────────────────────────────────────────────
 
@@ -187,17 +208,30 @@ public class FriendsActivity extends BaseActivity {
             boolean alreadyFriend = currentUid != null && friendUids.contains(friendUid);
 
             if (isMyFriendsList) {
+                holder.btnAction.setVisibility(View.VISIBLE);
                 holder.btnAction.setText("Remove");
                 holder.btnAction.setEnabled(true);
                 holder.btnAction.setAlpha(1.0f);
             } else if (alreadyFriend) {
-                holder.btnAction.setText("Added");
-                holder.btnAction.setEnabled(false);
-                holder.btnAction.setAlpha(0.4f);
+                holder.btnAction.setVisibility(View.GONE);
             } else {
+                holder.btnAction.setVisibility(View.VISIBLE);
                 holder.btnAction.setText("Add");
                 holder.btnAction.setEnabled(true);
                 holder.btnAction.setAlpha(1.0f);
+
+                // Realtime verification against Firebase RTDB
+                if (currentUid != null && friendUid != null) {
+                    firebaseManager.isFriend(currentUid, friendUid, isFriend -> {
+                        if (holder.itemView == null) return;
+                        holder.itemView.post(() -> {
+                            if (Boolean.TRUE.equals(isFriend)) {
+                                friendUids.add(friendUid);
+                                holder.btnAction.setVisibility(View.GONE);
+                            }
+                        });
+                    });
+                }
             }
 
             holder.btnAction.setOnClickListener(v -> {
@@ -206,13 +240,15 @@ public class FriendsActivity extends BaseActivity {
                     firebaseManager.removeFriend(currentUid, friendUid);
                     friendUids.remove(friendUid);
                     Toast.makeText(FriendsActivity.this, "Removed friend: " + name, Toast.LENGTH_SHORT).show();
+                    // Refresh the friends list view
+                    loadFriends();
                 } else if (!friendUids.contains(friendUid)) {
                     firebaseManager.addFriend(currentUid, friendUid);
                     friendUids.add(friendUid);
-                    Toast.makeText(FriendsActivity.this, "Added friend: " + name, Toast.LENGTH_SHORT).show();
+                    // Immediately hide the add button for this item
+                    holder.btnAction.setVisibility(View.GONE);
+                    Toast.makeText(FriendsActivity.this, "Added friend: " + name + " ✓", Toast.LENGTH_SHORT).show();
                 }
-                // Refresh the visible list (friends list if not searching, results otherwise)
-                performSearch();
             });
 
             holder.itemView.setOnClickListener(v -> {

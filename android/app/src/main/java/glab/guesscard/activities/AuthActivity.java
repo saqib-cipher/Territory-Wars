@@ -84,7 +84,7 @@ public class AuthActivity extends BaseActivity {
             @Override
             public void onFailure(String message) {
                 setLoading(false);
-                new com.google.android.material.dialog.MaterialAlertDialogBuilder(AuthActivity.this)
+                new androidx.appcompat.app.AlertDialog.Builder(AuthActivity.this)
                         .setTitle("Sign-in Failed")
                         .setMessage("Could not connect: " + message + "\n\nPlay offline instead?")
                         .setPositiveButton("Play Offline", (d, w) -> {

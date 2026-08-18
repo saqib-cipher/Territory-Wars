@@ -29,6 +29,20 @@ async function main() {
     redis.connect().catch((err) => {
       console.warn('[redis] background connection warning:', err.message);
     });
+
+    // Keep Render free-tier awake by self-pinging every 14 minutes.
+    // Render sleeps instances after 15 min of inactivity — this prevents it.
+    const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    if (process.env.RENDER_EXTERNAL_URL) {
+      setInterval(() => {
+        http.get(`${selfUrl}/health`, (res) => {
+          console.log(`[keepalive] ping → ${res.statusCode}`);
+        }).on('error', (e) => {
+          console.warn('[keepalive] ping failed:', e.message);
+        });
+      }, 14 * 60 * 1000); // every 14 minutes
+      console.log(`[keepalive] self-ping enabled → ${selfUrl}/health`);
+    }
   });
 
   // graceful shutdown

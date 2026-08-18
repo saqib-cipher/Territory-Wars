@@ -13,8 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.snackbar.Snackbar;
+import androidx.appcompat.app.AlertDialog;
 import glab.guesscard.R;
 import glab.guesscard.adapters.FriendAdapter;
 import glab.guesscard.di.GameContainer;
@@ -56,7 +55,7 @@ public class FriendsFragment extends Fragment {
 
         viewModel.getFriends().observe(getViewLifecycleOwner(), adapter::submitList);
         viewModel.getMessage().observe(getViewLifecycleOwner(),
-                msg -> Snackbar.make(view, msg, Snackbar.LENGTH_SHORT).show());
+                msg -> Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show());
 
         viewModel.loadFriends();
     }
@@ -73,7 +72,7 @@ public class FriendsFragment extends Fragment {
     private void showAddDialog() {
         android.widget.EditText input = new android.widget.EditText(requireContext());
         input.setHint("username or player id");
-        new MaterialAlertDialogBuilder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Add Friend")
                 .setView(input)
                 .setPositiveButton("Send", (dialog, which) ->

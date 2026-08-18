@@ -120,7 +120,6 @@ public class GameCardView extends FrameLayout {
         addView(textContainer, lp);
 
         setCameraDistance(10000 * context.getResources().getDisplayMetrics().density);
-        setOnClickListener(v -> animateFlipCard(null));
 
         animateEntry();
     }
@@ -153,13 +152,40 @@ public class GameCardView extends FrameLayout {
     }
 
     public void setCardData(String word, String category, boolean isGuesser) {
-        animateFlipCard(() -> {
-            this.cardWord = word != null ? word : "";
-            this.category = category != null ? category : "Category";
+        String newWord = word != null ? word : "";
+        String newCategory = category != null ? category : "Category";
+        boolean isInitialLoad = this.cardWord.isEmpty();
+        boolean changed = !this.cardWord.equals(newWord) || this.isGuesser != isGuesser || !this.category.equalsIgnoreCase(newCategory);
+
+        if (changed && !isInitialLoad) {
+            // New round or card rotation: animate flip
+            animateFlipCard(() -> {
+                this.cardWord = newWord;
+                this.category = newCategory;
+                this.isGuesser = isGuesser;
+
+                cardCategoryText.setText(this.category.toUpperCase());
+
+                if (isGuesser) {
+                    cardContentText.setText("?????");
+                    cardContentText.setTextColor(Color.parseColor("#F59E0B"));
+                    cardSubtextText.setText("Hold phone up! Ask questions to guess your card.");
+                } else {
+                    cardContentText.setText(cardWord);
+                    cardContentText.setTextColor(Color.WHITE);
+                    cardSubtextText.setText("Help the guessing player figure out this card!");
+                }
+
+                if (cardBackgroundView != null) {
+                    cardBackgroundView.invalidate();
+                }
+            });
+        } else {
+            // Initial match entry or same round content update: render directly without flipping!
+            this.cardWord = newWord;
+            this.category = newCategory;
             this.isGuesser = isGuesser;
-
             cardCategoryText.setText(this.category.toUpperCase());
-
             if (isGuesser) {
                 cardContentText.setText("?????");
                 cardContentText.setTextColor(Color.parseColor("#F59E0B"));
@@ -169,28 +195,25 @@ public class GameCardView extends FrameLayout {
                 cardContentText.setTextColor(Color.WHITE);
                 cardSubtextText.setText("Help the guessing player figure out this card!");
             }
-
             if (cardBackgroundView != null) {
                 cardBackgroundView.invalidate();
             }
-        });
+        }
     }
 
     public void animateEntry() {
         setAlpha(0f);
-        setScaleX(0.75f);
-        setScaleY(0.75f);
-        setRotation(-8f);
+        setScaleX(0.85f);
+        setScaleY(0.85f);
 
         ObjectAnimator alphaAnim = ObjectAnimator.ofFloat(this, View.ALPHA, 0f, 1f);
-        ObjectAnimator scaleXAnim = ObjectAnimator.ofFloat(this, View.SCALE_X, 0.75f, 1.0f);
-        ObjectAnimator scaleYAnim = ObjectAnimator.ofFloat(this, View.SCALE_Y, 0.75f, 1.0f);
-        ObjectAnimator rotAnim = ObjectAnimator.ofFloat(this, View.ROTATION, -8f, 0f);
+        ObjectAnimator scaleXAnim = ObjectAnimator.ofFloat(this, View.SCALE_X, 0.85f, 1.0f);
+        ObjectAnimator scaleYAnim = ObjectAnimator.ofFloat(this, View.SCALE_Y, 0.85f, 1.0f);
 
         AnimatorSet set = new AnimatorSet();
-        set.playTogether(alphaAnim, scaleXAnim, scaleYAnim, rotAnim);
-        set.setDuration(450);
-        set.setInterpolator(new OvershootInterpolator(1.2f));
+        set.playTogether(alphaAnim, scaleXAnim, scaleYAnim);
+        set.setDuration(350);
+        set.setInterpolator(new OvershootInterpolator(1.1f));
         set.start();
     }
 

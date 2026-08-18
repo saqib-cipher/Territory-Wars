@@ -15,6 +15,7 @@ public interface GameSocketListener {
     default void onChatMessage(ChatMessage message) {}
     default void onGameStart(String mode, long durationMillis) {}
     default void onGameEnd(glab.guesscard.models.MatchResult result) {}
+    default void onPublicRoomsList(java.util.List<RoomInfo> rooms) {}
 
     // Guess the Card real-time event callbacks
     /** Called when a player asks a question (online mode). */

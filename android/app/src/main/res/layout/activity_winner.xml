@@ -63,28 +63,32 @@
             android:letterSpacing="0.1"
             android:layout_marginBottom="8dp" />
 
-        <LinearLayout
-            android:id="@+id/leaderboardContainer"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvWinnerLeaderboard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E1B4B"
-            android:padding="16dp"
             android:layout_marginBottom="32dp" />
 
         <!-- Action Buttons -->
         <glab.guesscard.ModernFButton
             android:id="@+id/btnPlayAgain"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginBottom="12dp"
+            android:layout_height="54dp"
+            android:layout_marginBottom="10dp"
             android:text="🔄  PLAY AGAIN" />
+
+        <glab.guesscard.ModernFButton
+            android:id="@+id/btnReturnToLobby"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginBottom="10dp"
+            android:text="👥  RETURN TO LOBBY" />
 
         <glab.guesscard.ModernFButton
             android:id="@+id/btnHome"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="🏠  HOME MENU" />
+            android:layout_height="54dp"
+            android:text="🚪  EXIT TO HOME" />
 
     </LinearLayout>
 </ScrollView>

@@ -1,227 +1,327 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/gameRootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:fillViewport="true">
+    android:background="@color/bg_dark">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <!-- ── TOP HUD BANNER ── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:orientation="vertical"
+            android:padding="16dp">
 
+            <!-- ── TOP HUD BANNER ── -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvRoundIndicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ROUND 1 / 5"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCurrentPlayer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Your turn to ask questions!"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <glab.guesscard.views.TimerView
+                    android:id="@+id/timerView"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="QUESTIONS LEFT"
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:letterSpacing="0.1" />
+
+                    <TextView
+                        android:id="@+id/tvQuestionsLeft"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="20"
+                        android:textColor="#F59E0B"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ── VOICE CHAT & SPEAKER CONTROLS BAR ── -->
+            <LinearLayout
+                android:id="@+id/voiceControlsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shape_glass_card"
+                android:padding="8dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_speaker"
+                    android:layout_marginEnd="6dp" />
 
                 <TextView
-                    android:id="@+id/tvRoundIndicator"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tvVoiceStatus"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="ROUND 1 / 5"
-                    android:textColor="#94A3B8"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvCurrentPlayer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Your turn to ask questions!"
+                    android:text="Voice Chat • Speaker On"
                     android:textColor="#38BDF8"
                     android:textSize="11sp" />
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnMuteSelf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="Mic On"
+                    android:textSize="10sp" />
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnMuteAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:text="Mute Others"
+                    android:textSize="10sp" />
+
             </LinearLayout>
 
-            <glab.guesscard.views.TimerView
-                android:id="@+id/timerView"
-                android:layout_width="72dp"
-                android:layout_height="72dp" />
-
+            <!-- ── PLAYER STRIP CONTAINER ── -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/gamePlayerContainer"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="12dp" />
+
+            <!-- ── CENTER GAME CARD ── -->
+            <glab.guesscard.views.GameCardView
+                android:id="@+id/gameCardView"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- ── RECENT Q&A HISTORY STREAM ── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QUESTION HISTORY"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="4dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvQuestionHistory"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:gravity="end"
+                android:background="@drawable/shape_glass_card"
+                android:padding="6dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- ── ANSWERER WAITING PROMPT ── -->
+            <TextView
+                android:id="@+id/tvAnswererWaitingPrompt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⏳ Waiting for a player to ask a question..."
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:visibility="gone" />
+
+            <!-- ── ANSWERER ACTION BUTTONS (YES / MAYBE / NO) ── -->
+            <LinearLayout
+                android:id="@+id/answerButtonContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginBottom="12dp">
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnAnswerYes"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="YES"
+                    android:textSize="13sp" />
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnAnswerMaybe"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="MAYBE"
+                    android:textSize="13sp" />
+
+                <glab.guesscard.ModernFButton
+                    android:id="@+id/btnAnswerNo"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="NO"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+            <!-- ── QUESTIONER VOICE & QUICK CHIPS ── -->
+            <LinearLayout
+                android:id="@+id/questionerControlsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/tvQuickQuestionsHeader"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="QUESTIONS LEFT"
+                    android:text="QUICK QUESTIONS"
                     android:textColor="#94A3B8"
                     android:textSize="10sp"
-                    android:letterSpacing="0.1" />
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="4dp" />
 
-                <TextView
-                    android:id="@+id/tvQuestionsLeft"
-                    android:layout_width="wrap_content"
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="10"
-                    android:textColor="#F59E0B"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:scrollbars="none"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:id="@+id/quickQuestionsContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
+                <!-- Ask Question Voice Mic & Guess Button -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <glab.guesscard.ModernFButton
+                        android:id="@+id/btnVoiceQuestion"
+                        android:layout_width="54dp"
+                        android:layout_height="52dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="🎤"
+                        android:textSize="18sp" />
+
+                    <glab.guesscard.ModernFButton
+                        android:id="@+id/btnGuess"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:text="GUESS THE CARD"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
             </LinearLayout>
 
         </LinearLayout>
 
-        <!-- ── VOICE CHAT & MUTE CONTROLS BAR ── -->
-        <LinearLayout
-            android:id="@+id/voiceControlsContainer"
-            android:layout_width="match_parent"
+    <!-- ── MATCH PAUSE OVERLAY BANNER ── -->
+    <LinearLayout
+        android:id="@+id/pauseOverlayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#E60F172A"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/ivPauseIcon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_pause"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#1E293B"
-            android:padding="8dp"
-            android:layout_marginBottom="8dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Realtime Voice Chat"
-                android:textColor="#94A3B8"
-                android:textSize="11sp" />
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnMuteSelf"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginEnd="6dp"
-                android:text="Mic On"
-                android:textSize="11sp" />
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnMuteOthers"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Audio On"
-                android:textSize="11sp" />
-
-        </LinearLayout>
-
-        <!-- ── DYNAMIC PLAYER BAR ── -->
-        <LinearLayout
-            android:id="@+id/gamePlayerContainer"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:gravity="center"
-            android:orientation="horizontal"
+            android:text="Match Paused"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
             android:layout_marginBottom="8dp" />
 
-        <!-- ── CENTER ANIMATED GAME CARD ── -->
-        <glab.guesscard.views.GameCardView
-            android:id="@+id/gameCardView"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ── QUICK CATEGORY QUESTIONS SECTION ── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="6dp">
-
-            <TextView
-                android:id="@+id/tvQuickQuestionsHeader"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Quick Questions"
-                android:textColor="#38BDF8"
-                android:textSize="11sp"
-                android:textAllCaps="true"
-                android:letterSpacing="0.1" />
-
-            <!-- Mic Voice Button (online guesser only) -->
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnVoiceQuestion"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="Ask by Voice"
-                android:visibility="gone" />
-
-        </LinearLayout>
-
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="none"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:id="@+id/quickQuestionsContainer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
-
-        <!-- ── QUESTION HISTORY LIST ── -->
         <TextView
-            android:layout_width="match_parent"
+            android:id="@+id/tvPauseSubtitle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Q&amp;A History"
-            android:textColor="#64748B"
-            android:textSize="11sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="4dp" />
+            android:text="Player is away / switched app"
+            android:textColor="#F59E0B"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvQuestionHistory"
-            android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:nestedScrollingEnabled="true"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ── ANSWER BUTTONS (YES / NO only) ── -->
-        <LinearLayout
-            android:id="@+id/answerButtonContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp"
-            android:visibility="gone">
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnAnswerYes"
-                android:layout_width="0dp"
-                android:layout_height="52dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:text="YES" />
-
-            <glab.guesscard.ModernFButton
-                android:id="@+id/btnAnswerNo"
-                android:layout_width="0dp"
-                android:layout_height="52dp"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:text="NO" />
-
-        </LinearLayout>
-
-        <!-- Large GUESS Button for guessing player -->
+        <!-- Host Action Button to Kick Inactive Player & Resume Match -->
         <glab.guesscard.ModernFButton
-            android:id="@+id/btnGuess"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="GUESS THE CARD" />
+            android:id="@+id/btnHostKickInactive"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:paddingHorizontal="24dp"
+            android:text="🚫 Kick Inactive Player &amp; Resume"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvGuestPauseWait"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Waiting for player to return or Host to continue..."
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:layout_marginTop="12dp" />
 
     </LinearLayout>
-</ScrollView>
+
+</FrameLayout>

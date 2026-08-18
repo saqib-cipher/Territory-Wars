@@ -1,5 +1,6 @@
 package glab.guesscard.socket;
 
+import android.util.Base64;
 import android.util.Log;
 import androidx.annotation.Nullable;
 import glab.guesscard.BuildConfig;
@@ -17,24 +18,44 @@ import io.socket.emitter.Emitter;
 /**
  * Socket.IO client for Guess the Card real-time multiplayer.
  * Handles connection lifecycle, room synchronization, question/answer exchanges,
- * and guess submission.
+ * guess submission, and WebRTC/Voice signaling.
  */
 public class GameSocketClient {
     private static final String TAG = "GameSocketClient";
     private final PreferenceManager preferences;
     private Socket socket;
     private GameSocketListener listener;
+    // Pending room/voice to rejoin after (re)connect
+    private String pendingRoomId;
+    private String pendingVoiceRoomId;
+
+    public interface VoiceListener {
+        void onVoiceAudioReceived(String senderUid, byte[] audioPcm);
+        void onPlayerSpeaking(String userId, boolean isSpeaking);
+    }
+    private VoiceListener voiceListener;
+
+    public void setVoiceListener(@Nullable VoiceListener voiceListener) {
+        this.voiceListener = voiceListener;
+    }
 
     private final Emitter.Listener onConnect = args -> {
         Log.d(TAG, "connected");
+        // Rejoin room + voice channel after (re)connect so server maps socket.data.roomId
+        if (pendingRoomId != null) {
+            socket.emit("joinRoom", pendingRoomId);
+        }
+        if (pendingVoiceRoomId != null) {
+            socket.emit("voice_join", pendingVoiceRoomId);
+        }
         if (listener != null) listener.onConnected();
     };
     private final Emitter.Listener onDisconnect = args -> {
-        Log.d(TAG, "disconnected: " + args);
+        Log.d(TAG, "disconnected: " + (args.length > 0 ? args[0] : ""));
         if (listener != null) listener.onDisconnected();
     };
     private final Emitter.Listener onConnectError = args -> {
-        Log.e(TAG, "connect_error: " + args);
+        Log.e(TAG, "connect_error: " + (args.length > 0 ? args[0] : ""));
         if (listener != null) listener.onError(args.length > 0 ? String.valueOf(args[0]) : "connect_error");
     };
     private final Emitter.Listener onRoomJoined = args -> {
@@ -69,6 +90,20 @@ public class GameSocketClient {
             result.matchId = data.optString("roomId", "remote");
             result.playedAtEpochMillis = System.currentTimeMillis();
             if (listener != null) listener.onGameEnd(result);
+        }
+    };
+
+    private final Emitter.Listener onPublicRoomsList = args -> {
+        if (args.length > 0 && args[0] instanceof org.json.JSONArray && listener != null) {
+            org.json.JSONArray array = (org.json.JSONArray) args[0];
+            java.util.List<RoomInfo> rooms = new java.util.ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.optJSONObject(i);
+                if (obj != null) {
+                    rooms.add(RoomInfo.fromJson(obj));
+                }
+            }
+            listener.onPublicRoomsList(rooms);
         }
     };
 
@@ -109,6 +144,62 @@ public class GameSocketClient {
         }
     };
 
+    private final Emitter.Listener onVoiceAudioReceived = args -> {
+        if (args.length > 0 && args[0] instanceof JSONObject && voiceListener != null) {
+            JSONObject data = (JSONObject) args[0];
+            String sender = data.optString("sender");
+            String base64 = data.optString("data");
+            if (base64 != null && !base64.isEmpty()) {
+                try {
+                    byte[] pcm = Base64.decode(base64, Base64.NO_WRAP);
+                    voiceListener.onVoiceAudioReceived(sender, pcm);
+                } catch (Exception ignored) {}
+            }
+        }
+    };
+
+    private final Emitter.Listener onVoicePlayerSpeaking = args -> {
+        if (args.length > 0 && args[0] instanceof JSONObject && voiceListener != null) {
+            JSONObject data = (JSONObject) args[0];
+            voiceListener.onPlayerSpeaking(data.optString("userId"), data.optBoolean("isSpeaking", false));
+        }
+    };
+
+    public interface LiveKitTokenCallback {
+        void onLiveKitTokenReceived(String livekitUrl, String token, String roomId);
+        void onLiveKitTokenError(String message);
+    }
+    private LiveKitTokenCallback liveKitCallback;
+
+    public void requestLiveKitToken(String roomId, LiveKitTokenCallback callback) {
+        this.liveKitCallback = callback;
+        emit("get_livekit_token", roomId);
+    }
+
+    private final Emitter.Listener onLiveKitTokenReceived = args -> {
+        if (args.length > 0 && args[0] instanceof JSONObject && liveKitCallback != null) {
+            JSONObject data = (JSONObject) args[0];
+            String url = data.optString("url");
+            String token = data.optString("token");
+            String roomId = data.optString("roomId");
+            liveKitCallback.onLiveKitTokenReceived(url, token, roomId);
+        }
+    };
+
+    private final Emitter.Listener onLiveKitTokenError = args -> {
+        if (args.length > 0 && args[0] instanceof JSONObject && liveKitCallback != null) {
+            JSONObject data = (JSONObject) args[0];
+            liveKitCallback.onLiveKitTokenError(data.optString("message", "Token error"));
+        }
+    };
+
+    private final Emitter.Listener onLiveKitTokenFallback = args -> {
+        if (args.length > 0 && args[0] instanceof JSONObject && liveKitCallback != null) {
+            JSONObject data = (JSONObject) args[0];
+            liveKitCallback.onLiveKitTokenError(data.optString("message", "Fallback to direct voice"));
+        }
+    };
+
     public GameSocketClient(PreferenceManager preferences) {
         this.preferences = preferences;
     }
@@ -125,8 +216,14 @@ public class GameSocketClient {
         if (socket != null && socket.connected()) return;
         try {
             IO.Options options = IO.Options.builder()
-                    .setTransports(new String[]{"websocket"})
+                    // Allow polling first so Render's reverse proxy can do the Socket.IO
+                    // handshake, then upgrade to WebSocket. Forcing websocket-only breaks
+                    // on Render, Railway, Heroku, and any nginx-based deployment.
+                    .setTransports(new String[]{"polling", "websocket"})
                     .setAuth(buildAuth())
+                    .setReconnection(true)
+                    .setReconnectionAttempts(10)
+                    .setReconnectionDelay(1500)
                     .build();
             socket = IO.socket(BuildConfig.SOCKET_URL, options);
             socket.on(Socket.EVENT_CONNECT, onConnect);
@@ -141,6 +238,12 @@ public class GameSocketClient {
             socket.on("questionAnswered", onQuestionAnswered);
             socket.on("guessResult", onGuessResult);
             socket.on("turnStarted", onTurnStarted);
+            socket.on("voice_audio_received", onVoiceAudioReceived);
+            socket.on("voice_player_speaking", onVoicePlayerSpeaking);
+            socket.on("livekit_token_received", onLiveKitTokenReceived);
+            socket.on("livekit_token_error", onLiveKitTokenError);
+            socket.on("livekit_token_fallback", onLiveKitTokenFallback);
+            socket.on("publicRoomsList", onPublicRoomsList);
             socket.connect();
         } catch (Exception e) {
             Log.e(TAG, "failed to create socket", e);
@@ -156,6 +259,11 @@ public class GameSocketClient {
     }
 
     // ---- Room commands ----
+    public void requestPublicRooms() {
+        if (!isConnected()) connect();
+        emit("getPublicRooms");
+    }
+
     public void joinRoom(String roomId) {
         emit("joinRoom", roomId);
     }
@@ -184,6 +292,61 @@ public class GameSocketClient {
         emit("chatMessage", roomId, text);
     }
 
+    public void sendRoomInvite(String targetUserId) {
+        emit("sendRoomInvite", targetUserId);
+    }
+
+    // ---- Voice commands ----
+    /**
+     * Join the voice channel. Stores roomId so it is re-emitted automatically
+     * after every (re)connect — fixes the "audio never arrives" race condition
+     * where voice_join fires before socket authentication completes.
+     */
+    public void emitVoiceJoin(String roomId) {
+        this.pendingVoiceRoomId = roomId;
+        if (isConnected()) {
+            socket.emit("voice_join", roomId);
+        } else {
+            connect(); // onConnect will flush pendingVoiceRoomId
+        }
+    }
+
+    /**
+     * Tell the server which room this socket belongs to.
+     * Required when entering GameFragment from an intent (no fresh joinRoom socket call).
+     */
+    public void rejoinRoom(String roomId) {
+        this.pendingRoomId = roomId;
+        if (isConnected()) {
+            socket.emit("joinRoom", roomId);
+        } else {
+            connect();
+        }
+    }
+
+    public void emitVoiceLeave(String roomId) {
+        emit("voice_leave", roomId);
+    }
+
+    public void emitVoiceSpeaking(String roomId, boolean isSpeaking) {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("roomId", roomId);
+            obj.put("isSpeaking", isSpeaking);
+            emit("voice_speaking", obj);
+        } catch (Exception ignored) {}
+    }
+
+    public void emitVoiceAudioChunk(String roomId, String base64Pcm, long ts) {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("roomId", roomId);
+            obj.put("data", base64Pcm);
+            obj.put("ts", ts);
+            emit("voice_audio_chunk", obj);
+        } catch (Exception ignored) {}
+    }
+
     // ---- Gameplay commands ----
     public void askQuestion(String questionText) {
         emit("askQuestion", questionText);
@@ -202,12 +365,23 @@ public class GameSocketClient {
     }
 
     private Map<String, String> buildAuth() {
-        return java.util.Collections.singletonMap("token", preferences.getToken());
+        Map<String, String> auth = new java.util.HashMap<>();
+        String token = preferences != null ? preferences.getToken() : null;
+        String uid = preferences != null ? preferences.getUserId() : null;
+        String name = preferences != null ? preferences.getUsername() : null;
+        if (token != null) auth.put("token", token);
+        if (uid != null) auth.put("uid", uid);
+        if (name != null) auth.put("name", name);
+        return auth;
     }
 
     private void emit(String event, Object... args) {
         if (socket == null || !socket.connected()) {
-            Log.w(TAG, "socket not connected; dropping " + event);
+            Log.w(TAG, "socket not connected for " + event + "; attempting auto-reconnect");
+            try {
+                if (socket != null) socket.connect();
+                else connect();
+            } catch (Exception ignored) {}
             return;
         }
         socket.emit(event, args);

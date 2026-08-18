@@ -11,6 +11,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -297,11 +299,20 @@ public class FirebaseManager {
                 });
     }
 
+    public enum FriendshipStatus {
+        SELF,
+        FRIENDS,
+        REQUEST_SENT,
+        NOT_FRIENDS
+    }
+
     /** Add a friend under /users/{uid}/friends/{friendUid} */
     public void addFriend(String uid, String friendUid) {
         if (uid == null || friendUid == null) return;
         database.child("users").child(uid).child("friends").child(friendUid).setValue(true);
         database.child("users").child(friendUid).child("friends").child(uid).setValue(true);
+        database.child("users").child(uid).child("friendRequests").child(friendUid).removeValue();
+        database.child("users").child(friendUid).child("friendRequests").child(uid).removeValue();
     }
 
     /** Remove a friend */
@@ -311,7 +322,65 @@ public class FirebaseManager {
         database.child("users").child(friendUid).child("friends").child(uid).removeValue();
     }
 
-    /** Check whether two users are friends. */
+    /** Send friend request under /users/{targetUid}/friendRequests/{senderUid} */
+    public void sendFriendRequest(String senderUid, String targetUid) {
+        if (senderUid == null || targetUid == null) return;
+        database.child("users").child(targetUid).child("friendRequests").child(senderUid).setValue(true);
+    }
+
+    /** Check detailed friendship status between two users. */
+    public void checkFriendshipStatus(String myUid, String targetUid, DataCallback<FriendshipStatus> callback) {
+        if (myUid == null || targetUid == null || myUid.equals(targetUid)) {
+            if (callback != null) callback.onResult(FriendshipStatus.SELF);
+            return;
+        }
+
+        database.child("users").child(myUid).child("friends").child(targetUid)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (snapshot.exists()) {
+                            if (callback != null) callback.onResult(FriendshipStatus.FRIENDS);
+                        } else {
+                            database.child("users").child(targetUid).child("friends").child(myUid)
+                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot snap2) {
+                                            if (snap2.exists()) {
+                                                if (callback != null) callback.onResult(FriendshipStatus.FRIENDS);
+                                            } else {
+                                                database.child("users").child(targetUid).child("friendRequests").child(myUid)
+                                                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                                                            @Override
+                                                            public void onDataChange(@NonNull DataSnapshot reqSnap) {
+                                                                if (reqSnap.exists()) {
+                                                                    if (callback != null) callback.onResult(FriendshipStatus.REQUEST_SENT);
+                                                                } else {
+                                                                    if (callback != null) callback.onResult(FriendshipStatus.NOT_FRIENDS);
+                                                                }
+                                                            }
+                                                            @Override
+                                                            public void onCancelled(@NonNull DatabaseError error) {
+                                                                if (callback != null) callback.onResult(FriendshipStatus.NOT_FRIENDS);
+                                                            }
+                                                        });
+                                            }
+                                        }
+                                        @Override
+                                        public void onCancelled(@NonNull DatabaseError error) {
+                                            if (callback != null) callback.onResult(FriendshipStatus.NOT_FRIENDS);
+                                        }
+                                    });
+                        }
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        if (callback != null) callback.onResult(FriendshipStatus.NOT_FRIENDS);
+                    }
+                });
+    }
+
+    /** Check whether two users are friends (bidirectional check). */
     public void isFriend(String uid, String targetUid, DataCallback<Boolean> callback) {
         if (uid == null || targetUid == null) {
             if (callback != null) callback.onResult(false);
@@ -321,7 +390,21 @@ public class FirebaseManager {
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (callback != null) callback.onResult(snapshot.exists());
+                        if (snapshot.exists()) {
+                            if (callback != null) callback.onResult(true);
+                        } else {
+                            database.child("users").child(targetUid).child("friends").child(uid)
+                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot snap2) {
+                                            if (callback != null) callback.onResult(snap2.exists());
+                                        }
+                                        @Override
+                                        public void onCancelled(@NonNull DatabaseError error) {
+                                            if (callback != null) callback.onResult(false);
+                                        }
+                                    });
+                        }
                     }
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
@@ -351,7 +434,12 @@ public class FirebaseManager {
                 final int[] loaded = {0};
                 for (String fUid : friendUids) {
                     getUserProfile(fUid, profile -> {
-                        if (profile != null) friendsProfiles.add(profile);
+                        if (profile != null) {
+                            if (!profile.containsKey("uid") || profile.get("uid") == null) {
+                                profile.put("uid", fUid);
+                            }
+                            friendsProfiles.add(profile);
+                        }
                         loaded[0]++;
                         if (loaded[0] >= friendUids.size() && callback != null) {
                             callback.onResult(friendsProfiles);
@@ -383,31 +471,83 @@ public class FirebaseManager {
         ref.setValue(invite);
     }
 
-    /** Listen for real-time room invitations for current user */
-    public ValueEventListener listenForRoomInvites(String uid, InviteCallback callback) {
+    /** Listen for real-time room invitations for current user using ChildEventListener for instant delivery */
+    public ChildEventListener listenForRoomInvites(String uid, InviteCallback callback) {
         if (uid == null || callback == null) return null;
         DatabaseReference ref = database.child("users").child(uid).child("invites");
-        ValueEventListener listener = new ValueEventListener() {
+        ChildEventListener listener = new ChildEventListener() {
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                for (DataSnapshot child : snapshot.getChildren()) {
-                    //noinspection unchecked
-                    Map<String, Object> val = (Map<String, Object>) child.getValue();
-                    if (val != null) {
-                        String rId = (String) val.get("roomId");
-                        String code = (String) val.get("roomCode");
-                        String sender = (String) val.get("senderName");
+            public void onChildAdded(@NonNull DataSnapshot child, @Nullable String previousChildName) {
+                //noinspection unchecked
+                Map<String, Object> val = (Map<String, Object>) child.getValue();
+                if (val != null) {
+                    String rId = (String) val.get("roomId");
+                    String code = (String) val.get("roomCode");
+                    String sender = (String) val.get("senderName");
+                    child.getRef().removeValue();
+                    if (rId != null && !rId.isEmpty()) {
                         callback.onInviteReceived(rId, code, sender);
-                        child.getRef().removeValue();
                     }
                 }
             }
 
-            @Override
-            public void onCancelled(DatabaseError error) {}
+            @Override public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}
+            @Override public void onChildRemoved(@NonNull DataSnapshot snapshot) {}
+            @Override public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         };
-        ref.addValueEventListener(listener);
+        ref.addChildEventListener(listener);
         return listener;
+    }
+
+    /** Remove room invitation listener */
+    public void removeRoomInviteListener(String uid, ChildEventListener listener) {
+        if (uid == null || listener == null) return;
+        database.child("users").child(uid).child("invites").removeEventListener(listener);
+    }
+
+    /** Save finished match record under /users/{uid}/matchHistory/{matchId} and update stats */
+    public void saveMatchHistory(String uid, String winnerName, int score, String mode, boolean isWinner, int rank, int totalPlayers) {
+        if (uid == null || uid.isEmpty()) return;
+
+        DatabaseReference historyRef = database.child("users").child(uid).child("matchHistory").push();
+        Map<String, Object> history = new HashMap<>();
+        history.put("mode", mode != null ? mode : "ANIMALS");
+        history.put("score", score);
+        history.put("rank", rank);
+        history.put("totalPlayers", totalPlayers);
+        history.put("winnerName", winnerName != null ? winnerName : "Winner");
+        history.put("isWinner", isWinner);
+        history.put("timestamp", ServerValue.TIMESTAMP);
+        historyRef.setValue(history);
+
+        // Update player overall stats under /users/{uid}/stats
+        DatabaseReference statsRef = database.child("users").child(uid).child("stats");
+        statsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Long games = snapshot.child("gamesPlayed").getValue(Long.class);
+                Long wins = snapshot.child("wins").getValue(Long.class);
+                Long totalScore = snapshot.child("totalScore").getValue(Long.class);
+
+                long newGames = (games != null ? games : 0L) + 1;
+                long newWins = (wins != null ? wins : 0L) + (isWinner ? 1 : 0);
+                long newScore = (totalScore != null ? totalScore : 0L) + Math.max(0, score);
+                long newLevel = Math.max(1, (newScore / 500) + 1);
+
+                Map<String, Object> stats = new HashMap<>();
+                stats.put("gamesPlayed", newGames);
+                stats.put("wins", newWins);
+                stats.put("totalScore", newScore);
+                stats.put("level", newLevel);
+
+                statsRef.updateChildren(stats);
+                database.child("users").child(uid).child("level").setValue(newLevel);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     /** Search users by UID or Username (excludes the current user). */
@@ -471,7 +611,7 @@ public class FirebaseManager {
                     if ("FINISHED".equalsIgnoreCase(status) || "PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status)) {
                         continue;
                     }
-                    if (pCount > 0 && pCount < 5 && (modeStr == null || modeStr.equalsIgnoreCase(rMode))) {
+                    if (pCount < 5 && (modeStr == null || modeStr.equalsIgnoreCase(rMode))) {
                         String rId = child.getKey();
                         String code = child.child("code").getValue(String.class);
                         if (rId != null) {
@@ -586,6 +726,8 @@ public class FirebaseManager {
                     String existingMode = snapshot.child("mode").getValue(String.class);
                     if (existingCode != null && !existingCode.isEmpty()) {
                         roomRef.child("name").setValue(roomTitle);
+                        roomRef.child("hostName").setValue(hName);
+                        roomRef.child("hostAvatar").setValue(aFile);
                         upsertHostPlayer(roomRef, hUid, hName, aFile);
                         if (callback != null) callback.onRoomCreated(hUid, existingCode, existingMode != null ? existingMode : modeStr);
                         return;
@@ -637,6 +779,8 @@ public class FirebaseManager {
         roomData.put("code", code);
         roomData.put("mode", modeStr);
         roomData.put("hostUid", hUid);
+        roomData.put("hostName", hName);
+        roomData.put("hostAvatar", aFile);
         roomData.put("status", "LOBBY");
         roomData.put("createdAt", ServerValue.TIMESTAMP);
         roomRef.updateChildren(roomData);

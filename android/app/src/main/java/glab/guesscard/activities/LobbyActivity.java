@@ -2,20 +2,19 @@ package glab.guesscard.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.view.LayoutInflater;
+import android.os.CountDownTimer;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
@@ -25,7 +24,10 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
@@ -36,48 +38,43 @@ import glab.guesscard.models.GameMode;
 import glab.guesscard.models.RoomInfo;
 import glab.guesscard.socket.GameSocketClient;
 import glab.guesscard.socket.GameSocketListener;
-import glab.guesscard.views.PlayerAvatarView;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
- * Lobby Activity: shows online room players with custom item_lobby_player layout,
- * friend room invitations, ready toggle, and auto-start 5s countdown timer.
+ * Lobby for multiplayer Guess the Card:
+ * Displays player list, ready states, room code, host controls (transfer host, kick),
+ * and starts game when everyone is ready.
  */
 public class LobbyActivity extends BaseActivity implements GameSocketListener {
+
     public static final String EXTRA_MODE = "extra_mode";
-    public static final String EXTRA_ROOM_CODE = "extra_room_code";
     public static final String EXTRA_ROOM_ID = "extra_room_id";
+    public static final String EXTRA_ROOM_CODE = "extra_room_code";
     public static final String EXTRA_ROOM_NAME = "extra_room_name";
 
     private GameSocketClient socket;
     private FirebaseManager firebaseManager;
-    private RoomInfo room;
-    private String currentRoomId;
-    private String currentRoomCode;   // unique join code from /rooms/{hostUid}/code
-    private String currentRoomName;
-
+    private LobbyPlayerAdapter playerAdapter;
     private TextView roomCodeText;
     private TextView roomNameText;
     private TextView roomModeText;
-    private LinearLayout avatarContainer;
+    private ModernFButton readyButton;
     private RecyclerView playersList;
     private RecyclerView rvInviteFriends;
-    private LobbyPlayerAdapter playerAdapter;
-    private ModernFButton readyButton;
+
+    private RoomInfo room;
     private boolean isLocallyReady = false;
-    private DatabaseReference roomPlayersRef;
-    private ChildEventListener playersListener;
+    private String currentRoomId;
+    private String currentRoomCode;
+    private String currentRoomName;
     private ValueEventListener statusListener;
     private ValueEventListener codeListener;
-    private ValueEventListener hostUidListener;
     private ValueEventListener nameListener;
-
-    private android.os.CountDownTimer startCountdownTimer;
+    private ValueEventListener hostUidListener;
+    private ValueEventListener kickListener;
+    private DatabaseReference roomPlayersRef;
+    private ChildEventListener playersListener;
+    private CountDownTimer startCountdownTimer;
     private boolean isCountingDown = false;
-    private ValueEventListener inviteListener;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -91,9 +88,9 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         roomCodeText = findViewById(R.id.roomCodeText);
         roomNameText = findViewById(R.id.roomNameText);
         roomModeText = findViewById(R.id.roomModeText);
+        readyButton = findViewById(R.id.readyButton);
         playersList = findViewById(R.id.playersList);
         rvInviteFriends = findViewById(R.id.rvInviteFriends);
-        readyButton = findViewById(R.id.readyButton);
 
         View codeContainer = findViewById(R.id.roomCodeContainer);
         if (codeContainer != null) {
@@ -111,6 +108,8 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         }
 
         playerAdapter = new LobbyPlayerAdapter();
+        playerAdapter.setOnPlayerClickListener(this::handlePlayerClick);
+
         if (playersList != null) {
             playersList.setLayoutManager(new LinearLayoutManager(this));
             playersList.setAdapter(playerAdapter);
@@ -118,29 +117,92 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
         if (rvInviteFriends != null) {
             rvInviteFriends.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            loadFriendsToInvite();
         }
 
-        readyButton.setOnClickListener(v -> toggleReady());
+        updateReadyButtonUI();
+        if (readyButton != null) {
+            readyButton.setOnClickListener(v -> toggleReady());
+        }
+
         View leave = findViewById(R.id.leaveRoomButton);
         if (leave != null) leave.setOnClickListener(v -> leaveRoom());
 
         ModernFButton btnStart = findViewById(R.id.btnStartMatch);
         if (btnStart != null) {
-            btnStart.setOnClickListener(v -> {
-                if (socket != null && socket.isConnected()) {
-                    socket.startGame();
-                } else {
-                    String modeStr = getIntent().getStringExtra(EXTRA_MODE);
-                    onGameStart(modeStr != null ? modeStr : "ANIMALS", 60_000L);
-                }
-            });
+            btnStart.setOnClickListener(v -> startMatchByHost());
         }
 
         if (!socket.isConnected()) socket.connect();
 
         initRoomFromIntent();
-        setupInviteListener();
+    }
+
+    private void updateReadyButtonUI() {
+        if (readyButton == null) return;
+        if (isLocallyReady) {
+            readyButton.setText("Cancel Ready 🔴");
+            readyButton.setButtonColor(Color.parseColor("#EF4444"));
+            readyButton.setShadowColor(Color.parseColor("#B91C1C"));
+        } else {
+            readyButton.setText("I'm Ready 🟢");
+            readyButton.setButtonColor(Color.parseColor("#10B981"));
+            readyButton.setShadowColor(Color.parseColor("#047857"));
+        }
+    }
+
+    private void handlePlayerClick(RoomInfo.LobbyPlayer target) {
+        if (target == null || target.userId == null) return;
+        String myUid = prefs().getUserId();
+        String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : currentRoomId;
+        boolean isHost = myUid != null && myUid.equals(hostUid);
+        boolean isSelf = myUid != null && myUid.equals(target.userId);
+
+        if (isHost && !isSelf && !target.isLeft) {
+            String targetName = target.username != null ? target.username : "Player";
+            String[] options = new String[]{"👑 Transfer Host", "🚫 Kick Player", "👤 View Profile"};
+            new AlertDialog.Builder(this)
+                    .setTitle("Manage " + targetName)
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) {
+                            transferHostTo(target.userId, targetName);
+                        } else if (which == 1) {
+                            kickPlayerFromRoom(target.userId, targetName);
+                        } else if (which == 2) {
+                            startActivity(PublicProfileActivity.intent(this, target.userId));
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            startActivity(PublicProfileActivity.intent(this, target.userId));
+        }
+    }
+
+    private void transferHostTo(String targetUid, String targetName) {
+        if (currentRoomId == null || targetUid == null) return;
+        firebaseManager.getRoomRef(currentRoomId).child("hostUid").setValue(targetUid);
+        firebaseManager.getUserProfile(targetUid, data -> {
+            if (data != null) {
+                String n = (String) data.get("displayName");
+                String a = (String) data.get("avatarFileName");
+                if (n != null) firebaseManager.getRoomRef(currentRoomId).child("hostName").setValue(n);
+                if (a != null) firebaseManager.getRoomRef(currentRoomId).child("hostAvatar").setValue(a);
+            }
+        });
+        Toast.makeText(this, "Host role transferred to " + targetName, Toast.LENGTH_SHORT).show();
+        if (room != null) {
+            room.hostId = targetUid;
+            updateRoomUI(room);
+        }
+        refreshRoomPresence(currentRoomId);
+    }
+
+    private void kickPlayerFromRoom(String targetUid, String targetName) {
+        if (currentRoomId == null || targetUid == null) return;
+        firebaseManager.getRoomRef(currentRoomId).child("players").child(targetUid).removeValue();
+        firebaseManager.getRoomRef(currentRoomId).child("kicked").child(targetUid).setValue(true);
+        Toast.makeText(this, targetName + " has been kicked from the room", Toast.LENGTH_SHORT).show();
+        refreshRoomPresence(currentRoomId);
     }
 
     /**
@@ -155,7 +217,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         currentRoomName = roomNameExtra;
 
         if (roomIdExtra != null && !roomIdExtra.isEmpty()) {
-            // Already know the host-uid room node (host created it or invite carried it).
             currentRoomId = roomIdExtra;
             currentRoomCode = codeExtra != null ? codeExtra : null;
             if (roomCodeText != null && currentRoomCode != null) roomCodeText.setText(currentRoomCode);
@@ -164,7 +225,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 if (currentRoomCode != null && !currentRoomCode.isEmpty()) socket.joinRoomByCode(currentRoomCode);
             }
         } else if (codeExtra != null && !codeExtra.isEmpty()) {
-            // Resolve join code -> host UID root node, then verify a slot is available.
             firebaseManager.findRoomByCode(codeExtra, (rId, rCode, rMode) -> runOnUiThread(() -> {
                 if (rId == null) {
                     Toast.makeText(LobbyActivity.this, "Room not found. The code may be invalid or the room was closed.", Toast.LENGTH_LONG).show();
@@ -221,65 +281,102 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         }
     }
 
-    private void setupInviteListener() {
-        String uid = prefs().getUserId();
-        if (uid != null) {
-            inviteListener = firebaseManager.listenForRoomInvites(uid, (rId, code, sender) -> runOnUiThread(() -> {
-                new MaterialAlertDialogBuilder(LobbyActivity.this)
-                        .setTitle("Room Invitation")
-                        .setMessage(sender + " invited you to join their game room (" + code + ").")
-                        .setPositiveButton("Join", (d, w) -> {
-                            Intent intent = new Intent(LobbyActivity.this, LobbyActivity.class);
-                            if (rId != null && !rId.isEmpty()) intent.putExtra(EXTRA_ROOM_ID, rId);
-                            intent.putExtra(EXTRA_ROOM_CODE, code);
-                            startActivity(intent);
-                            finish();
-                        })
-                        .setNegativeButton("Ignore", null)
-                        .show();
-            }));
-        }
-    }
-
     private void loadFriendsToInvite() {
         String uid = prefs().getUserId();
-        if (uid == null || firebaseManager == null) return;
-        firebaseManager.getFriends(uid, list -> runOnUiThread(() -> {
-            if (rvInviteFriends == null) return;
-            if (list == null || list.isEmpty()) {
-                View header = findViewById(R.id.tvInviteFriendsHeader);
-                if (header != null) header.setVisibility(View.GONE);
-                rvInviteFriends.setVisibility(View.GONE);
-            } else {
-                View header = findViewById(R.id.tvInviteFriendsHeader);
-                if (header != null) header.setVisibility(View.VISIBLE);
-                rvInviteFriends.setVisibility(View.VISIBLE);
-                rvInviteFriends.setAdapter(new InviteFriendsAdapter(list));
-            }
-        }));
+        if (uid == null || firebaseManager == null || currentRoomId == null) return;
+
+        // Get the live player list from Firebase to accurately know who's already in the room
+        firebaseManager.getRoomRef(currentRoomId).child("players")
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(@androidx.annotation.NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                        java.util.Set<String> roomPlayerUids = new java.util.HashSet<>();
+                        for (com.google.firebase.database.DataSnapshot pSnap : snapshot.getChildren()) {
+                            // Player uid can be stored as key or as "uid" field
+                            String pUid = pSnap.child("uid").getValue(String.class);
+                            if (pUid == null || pUid.isEmpty()) pUid = pSnap.getKey();
+                            if (pUid != null) roomPlayerUids.add(pUid);
+                        }
+
+                        firebaseManager.getFriends(uid, list -> runOnUiThread(() -> {
+                            if (rvInviteFriends == null) return;
+                            if (list == null || list.isEmpty()) {
+                                View header = findViewById(R.id.tvInviteFriendsHeader);
+                                if (header != null) header.setVisibility(View.GONE);
+                                rvInviteFriends.setVisibility(View.GONE);
+                                return;
+                            }
+
+                            // Filter out friends already inside this lobby
+                            java.util.List<java.util.Map<String, Object>> unjoinedFriends = new java.util.ArrayList<>();
+                            for (java.util.Map<String, Object> friend : list) {
+                                String fUid = (String) friend.get("uid");
+                                if (fUid == null) fUid = (String) friend.get("userId");
+                                boolean alreadyJoined = fUid != null && roomPlayerUids.contains(fUid);
+                                if (!alreadyJoined) {
+                                    unjoinedFriends.add(friend);
+                                }
+                            }
+
+                            View header = findViewById(R.id.tvInviteFriendsHeader);
+                            if (unjoinedFriends.isEmpty()) {
+                                if (header != null) header.setVisibility(View.GONE);
+                                rvInviteFriends.setVisibility(View.GONE);
+                            } else {
+                                if (header != null) header.setVisibility(View.VISIBLE);
+                                rvInviteFriends.setVisibility(View.VISIBLE);
+                                rvInviteFriends.setAdapter(new InviteFriendsAdapter(unjoinedFriends));
+                            }
+                        }));
+                    }
+                    @Override
+                    public void onCancelled(@androidx.annotation.NonNull com.google.firebase.database.DatabaseError error) {}
+                });
     }
 
     private void toggleReady() {
         isLocallyReady = !isLocallyReady;
-        readyButton.setText(isLocallyReady ? "Ready!" : "I'm Ready");
+        updateReadyButtonUI();
 
-        if (socket != null && socket.isConnected() && room != null) {
+        String myUid = prefs().getUserId();
+        if (currentRoomId != null && myUid != null) {
+            firebaseManager.getRoomRef(currentRoomId).child("players").child(myUid).child("ready").setValue(isLocallyReady);
+        }
+
+        if (socket != null && socket.isConnected()) {
+            socket.setReady(isLocallyReady);
+        }
+
+        if (room != null && room.players != null) {
             for (RoomInfo.LobbyPlayer p : room.players) {
-                if (p.userId != null && p.userId.equals(prefs().getUserId())) {
+                if (p.userId != null && p.userId.equals(myUid)) {
                     p.isReady = isLocallyReady;
                     break;
                 }
             }
-            socket.setReady(isLocallyReady);
             updateRoomUI(room);
         }
     }
 
+    private boolean isStartingGame = false;
+
     private void leaveRoom() {
+        isStartingGame = false;
+        String myUid = prefs().getUserId();
+        String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : currentRoomId;
+        boolean isHost = myUid != null && myUid.equals(hostUid);
+
+        if (isHost && currentRoomId != null) {
+            // Host left intentionally: mark room CLOSED and delete from database so all players return home
+            firebaseManager.getRoomRef(currentRoomId).child("status").setValue("CLOSED");
+            firebaseManager.deleteRoom(currentRoomId);
+        } else {
+            removePresence();
+        }
+
         if (socket != null && socket.isConnected()) {
             socket.leaveRoom();
         }
-        removePresence();
         cancelCountdown();
         finish();
     }
@@ -288,7 +385,21 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     protected void onDestroy() {
         super.onDestroy();
         cancelCountdown();
-        removePresence();
+        if (isStartingGame) {
+            // Match is starting: do NOT delete room and do NOT remove presence!
+            return;
+        }
+
+        String myUid = prefs().getUserId();
+        String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : currentRoomId;
+        boolean isHost = myUid != null && myUid.equals(hostUid);
+
+        if (isHost && currentRoomId != null) {
+            firebaseManager.getRoomRef(currentRoomId).child("status").setValue("CLOSED");
+            firebaseManager.deleteRoom(currentRoomId);
+        } else {
+            removePresence();
+        }
     }
 
     private void listenToRoomPresence(String roomId) {
@@ -309,12 +420,19 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             firebaseManager.getRoomRef(roomId).child("players").child(uid).onDisconnect().removeValue();
         }
 
-        // Status Listener for match start
+        // Status Listener for match start or host left/room closed
         if (statusListener != null) firebaseManager.getRoomRef(roomId).child("status").removeEventListener(statusListener);
         statusListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (isFinishing()) return;
                 String status = snapshot.getValue(String.class);
+                if ("CLOSED".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status)) {
+                    Toast.makeText(LobbyActivity.this, "Host has left the room. Returning to Home...", Toast.LENGTH_LONG).show();
+                    removePresence();
+                    finish();
+                    return;
+                }
                 if ("PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status)) {
                     launchGame();
                 }
@@ -322,6 +440,25 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         };
         firebaseManager.getRoomRef(roomId).child("status").addValueEventListener(statusListener);
+
+        // Kicked listener for current player
+        if (uid != null) {
+            if (kickListener != null) firebaseManager.getRoomRef(roomId).child("kicked").child(uid).removeEventListener(kickListener);
+            kickListener = new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if (isFinishing()) return;
+                    Boolean kicked = snapshot.getValue(Boolean.class);
+                    if (Boolean.TRUE.equals(kicked)) {
+                        Toast.makeText(LobbyActivity.this, "You have been removed from the room by the host.", Toast.LENGTH_LONG).show();
+                        removePresence();
+                        finish();
+                    }
+                }
+                @Override public void onCancelled(@NonNull DatabaseError error) {}
+            };
+            firebaseManager.getRoomRef(roomId).child("kicked").child(uid).addValueEventListener(kickListener);
+        }
 
         // Code Listener for unique room code from /rooms/{hostUid}/code
         if (codeListener != null) firebaseManager.getRoomRef(roomId).child("code").removeEventListener(codeListener);
@@ -362,7 +499,14 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String hUid = snapshot.getValue(String.class);
                 if (hUid != null && !hUid.isEmpty()) {
-                    if (room != null) room.hostId = hUid;
+                    if (room != null) {
+                        room.hostId = hUid;
+                        for (RoomInfo.LobbyPlayer p : room.players) {
+                            p.isHost = hUid.equals(p.userId);
+                        }
+                        updateRoomUI(room);
+                    }
+                    refreshRoomPresence(roomId);
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
@@ -462,7 +606,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         if (room == null) return;
         ensureLocalPlayerInList(room);
 
-        String hostUid = room.hostId != null && !room.hostId.isEmpty() ? room.hostId : currentRoomId;
+        String hostUid = (room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : currentRoomId;
         ensureHostPlayerInList(room, hostUid);
 
         if (room.code == null || room.code.isEmpty()) {
@@ -499,19 +643,20 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 boolean allReady = nonHostTotalCount > 0 && nonHostReadyCount == nonHostTotalCount;
                 btnStart.setEnabled(allReady);
                 btnStart.setAlpha(allReady ? 1.0f : 0.4f);
-                btnStart.setText(allReady ? "START MATCH 🚀" : "Waiting for players to be ready...");
+                btnStart.setText(allReady ? "START MATCH 🚀" : "Waiting for players (" + nonHostReadyCount + "/" + nonHostTotalCount + " ready)...");
                 btnStart.setOnClickListener(v -> startMatchByHost());
             }
         } else {
             if (btnStart != null) btnStart.setVisibility(View.GONE);
             if (readyButton != null) {
                 readyButton.setVisibility(View.VISIBLE);
-                readyButton.setText(isLocallyReady ? "Cancel Ready 🔴" : "I'm Ready 🟢");
+                updateReadyButtonUI();
                 readyButton.setOnClickListener(v -> toggleReady());
             }
         }
 
         playerAdapter.submitList(room.players, hostUid);
+        loadFriendsToInvite();
     }
 
     private void ensureLocalPlayerInList(RoomInfo room) {
@@ -523,6 +668,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         for (RoomInfo.LobbyPlayer p : room.players) {
             if (p.userId != null && p.userId.equals(myUid)) {
                 found = true;
+                p.isReady = isLocallyReady;
                 break;
             }
         }
@@ -558,21 +704,54 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         }
     }
 
+    private String matchAnswererUid = null;
+
     private void startMatchByHost() {
         if (currentRoomId == null) return;
-        firebaseManager.getRoomRef(currentRoomId).child("status").setValue("PLAYING");
-        if (socket != null && socket.isConnected()) socket.startGame();
-        launchGame();
+        String modeStr = room != null && room.mode != null ? room.mode : "ANIMALS";
+        GameMode gameMode = GameMode.ANIMALS;
+        try { gameMode = GameMode.valueOf(modeStr); } catch (Exception ignored) {}
+
+        glab.guesscard.models.Card initialCard = glab.guesscard.models.Card.getRandomCardForMode(gameMode);
+        String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : prefs().getUserId();
+        matchAnswererUid = hostUid;
+
+        Map<String, Object> matchInit = new HashMap<>();
+        matchInit.put("status", "PLAYING");
+        matchInit.put("secretCard", initialCard.word);
+        matchInit.put("secretCardCategory", initialCard.category);
+        matchInit.put("answererUid", hostUid);
+        matchInit.put("currentRound", 1);
+        int totalPlayersCount = (room != null && room.players != null && !room.players.isEmpty()) ? room.players.size() : 1;
+        matchInit.put("totalRounds", totalPlayersCount);
+        matchInit.put("questionsRemaining", 20);
+        matchInit.put("startedAt", ServerValue.TIMESTAMP);
+
+        // Give 20 initial bonus points to each player at the start of match
+        if (room != null && room.players != null) {
+            for (RoomInfo.LobbyPlayer p : room.players) {
+                if (p.userId != null) {
+                    firebaseManager.getRoomRef(currentRoomId).child("players").child(p.userId).child("score").setValue(20);
+                }
+            }
+        }
+
+        // Write to Firebase first, then launch game after write completes to avoid race condition
+        firebaseManager.getRoomRef(currentRoomId).updateChildren(matchInit, (error, ref) -> {
+            if (socket != null && socket.isConnected()) socket.startGame();
+            launchGame();
+        });
     }
 
     private void launchGame() {
         if (isFinishing()) return;
+        isStartingGame = true;
         String modeStr = room != null && room.mode != null ? room.mode : "ANIMALS";
-        startActivity(GameActivity.intent(this, GameMode.valueOf(modeStr), currentRoomId, 60_000L));
+        startActivity(GameActivity.intent(this, GameMode.valueOf(modeStr), currentRoomId, 60_000L, matchAnswererUid));
         finish();
     }
 
-    private void removePresence() {
+    public void removePresence() {
         if (currentRoomId != null && roomPlayersRef != null && playersListener != null) {
             roomPlayersRef.removeEventListener(playersListener);
             String uid = prefs().getUserId();
@@ -606,7 +785,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         runOnUiThread(() -> {
             cancelCountdown();
             String rId = currentRoomId != null ? currentRoomId : "online_room";
-            startActivity(GameActivity.intent(this, GameMode.valueOf(mode), rId, durationMs));
+            startActivity(GameActivity.intent(this, GameMode.valueOf(mode), rId, durationMs, matchAnswererUid));
             finish();
         });
     }
@@ -614,8 +793,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     @Override
     public void onRoomJoined(RoomInfo room) {
         this.room = room;
-        // The socket room id is a server UUID; NEVER use it as the Firebase room node.
-        // The Firebase room node is the host UID and comes from the intent extras.
         runOnUiThread(() -> {
             if (room != null) {
                 if (room.code == null || room.code.isEmpty()) room.code = currentRoomCode;
@@ -625,7 +802,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                     if (roomIdExtra != null && !roomIdExtra.isEmpty()) {
                         currentRoomId = roomIdExtra;
                     } else {
-                        // Host flow fallback: the Firebase room root is the host UID.
                         currentRoomId = prefs().getUserId();
                     }
                 }
@@ -650,6 +826,8 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         isCountingDown = false;
     }
 
+    private final java.util.Set<String> sentInvitesSet = new java.util.HashSet<>();
+
     // ── INVITE FRIENDS ADAPTER ──────────────────────────────────────────────
 
     private class InviteFriendsAdapter extends RecyclerView.Adapter<InviteFriendsAdapter.VH> {
@@ -665,8 +843,9 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             ModernFButton btn = new ModernFButton(parent.getContext());
             btn.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
+                    Math.round(40 * parent.getContext().getResources().getDisplayMetrics().density)));
             btn.setTextSize(11.0f);
+            btn.setCornerRadiusDp(12f);
             return new VH(btn);
         }
 
@@ -675,16 +854,75 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             Map<String, Object> friend = friends.get(position);
             String fUid = (String) friend.getOrDefault("uid", "");
             String fName = (String) friend.getOrDefault("displayName", "Friend");
+            String fStatus = (String) friend.getOrDefault("status", "Online");
+            Long lastSeen = null;
+            if (friend.get("lastSeen") instanceof Long) {
+                lastSeen = (Long) friend.get("lastSeen");
+            }
 
-            holder.button.setText("Invite " + fName);
-            holder.button.setOnClickListener(v -> {
-                if (currentRoomId != null && fUid != null) {
-                    String code = roomCodeText != null ? roomCodeText.getText().toString() : "";
-                    String myName = prefs().getUsername();
-                    firebaseManager.sendRoomInvite(fUid, currentRoomId, code, myName);
-                    Toast.makeText(LobbyActivity.this, "Invitation sent to " + fName, Toast.LENGTH_SHORT).show();
+            boolean isOnline = "Online".equalsIgnoreCase(fStatus) ||
+                    (lastSeen != null && System.currentTimeMillis() - lastSeen < 5 * 60 * 1000L);
+            boolean isPlaying = "Playing".equalsIgnoreCase(fStatus);
+            boolean isAlreadyInvited = sentInvitesSet.contains(fUid);
+
+            boolean isAlreadyInLobby = false;
+            if (room != null && room.players != null && fUid != null) {
+                for (RoomInfo.LobbyPlayer p : room.players) {
+                    if (fUid.equals(p.userId) && !p.isLeft) {
+                        isAlreadyInLobby = true;
+                        break;
+                    }
                 }
-            });
+            }
+
+            if (isAlreadyInLobby) {
+                holder.button.setText(fName + " (In Lobby)");
+                holder.button.setEnabled(false);
+                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                holder.button.setTextColor(android.graphics.Color.parseColor("#64748B"));
+                holder.button.setShadowHeightDp(0f);
+            } else if (isPlaying) {
+                holder.button.setText(fName + " (Playing)");
+                holder.button.setEnabled(false);
+                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                holder.button.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
+                holder.button.setShadowHeightDp(0f);
+            } else if (isAlreadyInvited) {
+                holder.button.setText("Invited " + fName + " ✓");
+                holder.button.setEnabled(false);
+                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                holder.button.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
+                holder.button.setShadowHeightDp(0f);
+            } else if (!isOnline) {
+                holder.button.setText(fName + " (Offline)");
+                holder.button.setEnabled(false);
+                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                holder.button.setTextColor(android.graphics.Color.parseColor("#475569"));
+                holder.button.setShadowHeightDp(0f);
+            } else {
+                holder.button.setText("Invite " + fName + " ✉️");
+                holder.button.setEnabled(true);
+                holder.button.setButtonColor(android.graphics.Color.parseColor("#2563EB"));
+                holder.button.setTextColor(android.graphics.Color.WHITE);
+                holder.button.setShadowHeightDp(2f);
+                holder.button.setOnClickListener(v -> {
+                    if (currentRoomId != null && fUid != null && !sentInvitesSet.contains(fUid)) {
+                        sentInvitesSet.add(fUid);
+                        String code = roomCodeText != null ? roomCodeText.getText().toString() : "";
+                        String myName = prefs().getUsername();
+                        firebaseManager.sendRoomInvite(fUid, currentRoomId, code, myName);
+                        if (socket != null && socket.isConnected()) {
+                            socket.sendRoomInvite(fUid);
+                        }
+                        holder.button.setText("Invited " + fName + " ✓");
+                        holder.button.setEnabled(false);
+                        holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                        holder.button.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
+                        holder.button.setShadowHeightDp(0f);
+                        Toast.makeText(LobbyActivity.this, "Invitation sent to " + fName, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
         }
 
         @Override
