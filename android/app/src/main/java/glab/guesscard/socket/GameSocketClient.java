@@ -215,16 +215,23 @@ public class GameSocketClient {
     public void connect() {
         if (socket != null && socket.connected()) return;
         try {
-            IO.Options options = IO.Options.builder()
-                    // Allow polling first so Render's reverse proxy can do the Socket.IO
-                    // handshake, then upgrade to WebSocket. Forcing websocket-only breaks
-                    // on Render, Railway, Heroku, and any nginx-based deployment.
-                    .setTransports(new String[]{"polling", "websocket"})
-                    .setAuth(buildAuth())
-                    .setReconnection(true)
-                    .setReconnectionAttempts(10)
-                    .setReconnectionDelay(1500)
+            okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
                     .build();
+
+            IO.Options options = new IO.Options();
+            options.transports = new String[]{"websocket", "polling"};
+            options.auth = buildAuth();
+            options.query = buildQuery();
+            options.reconnection = true;
+            options.reconnectionAttempts = 20;
+            options.reconnectionDelay = 1000;
+            options.callFactory = okHttpClient;
+            options.webSocketFactory = okHttpClient;
+
             socket = IO.socket(BuildConfig.SOCKET_URL, options);
             socket.on(Socket.EVENT_CONNECT, onConnect);
             socket.on(Socket.EVENT_DISCONNECT, onDisconnect);
@@ -373,6 +380,12 @@ public class GameSocketClient {
         if (uid != null) auth.put("uid", uid);
         if (name != null) auth.put("name", name);
         return auth;
+    }
+
+    private String buildQuery() {
+        String uid = preferences != null ? preferences.getUserId() : "";
+        String name = preferences != null ? preferences.getUsername() : "Player";
+        return "uid=" + (uid != null ? uid : "") + "&name=" + (name != null ? name : "Player");
     }
 
     private void emit(String event, Object... args) {

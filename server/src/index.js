@@ -13,9 +13,13 @@ async function main() {
 
   const io = new Server(server, {
     cors: {
-      origin: config.isProd() ? false : '*',
+      origin: '*',
       methods: ['GET', 'POST'],
+      credentials: true,
     },
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000,
     maxHttpBufferSize: 1e6,
   });
 
