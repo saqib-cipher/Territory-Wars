@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modern Material 3 Dialog for Match History Details -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardBackgroundColor="#0F172A"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="16dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1.5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Top Header: Mode Badge + Close Button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvMatchDetailBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#10B981"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:text="ANIMALS MODE • WIN 👑"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/btnCloseMatchDetails"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/cancel"
+                app:tint="#94A3B8"
+                android:contentDescription="Close" />
+        </LinearLayout>
+
+        <!-- Secret Card Info Banner -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/gradient_hero"
+            android:padding="14dp"
+            android:layout_marginTop="12dp">
+
+            <TextView
+                android:id="@+id/tvMatchSecretCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎯 Secret Card: Lion 🦁"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvMatchWinnerInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="👑 Winner: Player 1"
+                android:textColor="#F59E0B"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvMatchTimestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="📅 Aug 19, 2026 • 15:10"
+                android:textColor="#94A3B8"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Standings Header -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            android:text="FINAL STANDINGS &amp; SCORES"
+            android:textColor="#38BDF8"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+
+        <!-- Standings RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvMatchDetailsStandings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="260dp"
+            android:scrollbars="vertical" />
+
+        <!-- Dismiss Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDoneMatchDetails"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:text="Close Details"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="#334155"
+            app:cornerRadius="14dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

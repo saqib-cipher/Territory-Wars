@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
+    android:fitsSystemWindows="true"
     android:orientation="vertical"
     android:padding="20dp">
 
@@ -18,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="FRIENDS MANAGER"
+            android:text="FRIENDS MANAGER 👥"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -79,34 +81,71 @@
         android:visibility="gone"
         android:layout_marginBottom="16dp" />
 
-    <!-- MY FRIENDS LIST SECTION -->
-    <TextView
-        android:id="@+id/tvMyFriendsHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="MY FRIENDS LIST"
-        android:textColor="#94A3B8"
-        android:textSize="12sp"
-        android:textAllCaps="true"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:id="@+id/tvNoFriends"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1E293B"
-        android:padding="20dp"
-        android:text="No friends added yet. Use the search bar above with a UID or name to add friends."
-        android:textColor="#94A3B8"
-        android:textSize="13sp"
-        android:gravity="center" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvFriendsList"
+    <!-- MAIN SCROLLABLE SECTION (Requests + Friends List) -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollFriendsContent"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:visibility="gone" />
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- INCOMING REQUESTS SECTION -->
+            <TextView
+                android:id="@+id/tvIncomingRequestsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PENDING FRIEND REQUESTS"
+                android:textColor="#10B981"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:visibility="gone"
+                android:layout_marginBottom="6dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvIncomingRequests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp" />
+
+            <!-- MY FRIENDS LIST SECTION -->
+            <TextView
+                android:id="@+id/tvMyFriendsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MY FRIENDS LIST"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvNoFriends"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#1E293B"
+                android:padding="20dp"
+                android:text="No friends added yet. Use the search bar above to find and add friends."
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:gravity="center" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFriendsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

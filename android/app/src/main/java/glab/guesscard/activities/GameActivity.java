@@ -3,6 +3,7 @@ package glab.guesscard.activities;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -51,8 +52,55 @@ public class GameActivity extends BaseActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        // Clear away flag when app comes back to foreground
+        String roomId = getIntent().getStringExtra(EXTRA_ROOM_ID);
+        String myUid = prefs().getUserId();
+        if (roomId != null && !roomId.isEmpty() && myUid != null && container() != null && container().getFirebaseManager() != null) {
+            container().getFirebaseManager().getRoomRef(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    if (!snapshot.exists()) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(GameActivity.this, "Match has ended", Toast.LENGTH_SHORT).show();
+                            returnToMain();
+                        });
+                        return;
+                    }
+                    String status = snapshot.child("status").getValue(String.class);
+                    if ("CLOSED".equalsIgnoreCase(status) || "ABANDONED".equalsIgnoreCase(status) || "FINISHED".equalsIgnoreCase(status)) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(GameActivity.this, "Match has ended", Toast.LENGTH_SHORT).show();
+                            returnToMain();
+                        });
+                    } else {
+                        // Match still running — clear away flag
+                        container().getFirebaseManager().getRoomRef(roomId)
+                                .child("players").child(myUid).child("isAway").setValue(false);
+                    }
+                }
+                @Override public void onCancelled(DatabaseError error) {}
+            });
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Mark player as away only when app truly goes to background (not just a dialog overlay)
+        String roomId = getIntent().getStringExtra(EXTRA_ROOM_ID);
+        String myUid = prefs().getUserId();
+        if (roomId != null && !roomId.isEmpty() && myUid != null && container() != null && container().getFirebaseManager() != null) {
+            container().getFirebaseManager().getRoomRef(roomId)
+                    .child("players").child(myUid).child("isAway").setValue(true);
+        }
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
+        // Stop sounds on pause (covers dialog overlays, home button, etc.)
         if (container() != null && container().getAudio() != null) {
             container().getAudio().stopAllSounds();
         }
@@ -78,7 +126,7 @@ public class GameActivity extends BaseActivity {
     /**
      * Shows leave confirmation dialog for online games.
      * - Deducts 50 points from the leaving player's score.
-     * - If only 2 players were left and one already left, closes and deletes the room.
+     * - Updates room status to CLOSED for host action.
      */
     private void showLeaveConfirmationDialog(String roomId) {
         new AlertDialog.Builder(this)
@@ -119,7 +167,7 @@ public class GameActivity extends BaseActivity {
                     public void onCancelled(DatabaseError error) {}
                 });
 
-        // Remove the player from the room and check if only 1 player is left
+        // Remove the player from the room
         container().getFirebaseManager().getRoomRef(roomId)
                 .child("players")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
@@ -128,39 +176,12 @@ public class GameActivity extends BaseActivity {
                         long playerCount = snapshot.getChildrenCount();
 
                         if (playerCount <= 2) {
-                            // Only 1 would be left (or already 1) — close room entirely
+                            // Only host is left — mark status as CLOSED so host gets the abandoned dialog
                             Map<String, Object> closeData = new HashMap<>();
                             closeData.put("status", "CLOSED");
                             container().getFirebaseManager().getRoomRef(roomId).updateChildren(closeData);
-                            container().getFirebaseManager().deleteRoom(roomId);
-                        } else {
-                            // More than 2 players — just remove this player
-                            snapshot.child(myUid).getRef().removeValue();
-
-                            // If leaving player was answerer, pick next player as answerer
-                            container().getFirebaseManager().getRoomRef(roomId)
-                                    .child("answererUid")
-                                    .addListenerForSingleValueEvent(new ValueEventListener() {
-                                        @Override
-                                        public void onDataChange(DataSnapshot answererSnap) {
-                                            String answererUid = answererSnap.getValue(String.class);
-                                            if (myUid.equals(answererUid)) {
-                                                // Pick next player as answerer
-                                                for (DataSnapshot playerSnap : snapshot.getChildren()) {
-                                                    String pUid = playerSnap.child("uid").getValue(String.class);
-                                                    if (pUid == null) pUid = playerSnap.getKey();
-                                                    if (pUid != null && !pUid.equals(myUid)) {
-                                                        container().getFirebaseManager().getRoomRef(roomId)
-                                                                .child("answererUid").setValue(pUid);
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        @Override public void onCancelled(DatabaseError error) {}
-                                    });
                         }
-
+                        snapshot.child(myUid).getRef().removeValue();
                         returnToMain();
                     }
                     @Override

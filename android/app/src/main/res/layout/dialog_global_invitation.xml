@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 Expressive Global Realtime Invitation & Friend Request Dialog -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="20dp"
+    app:cardBackgroundColor="#0F172A"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="16dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1.5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:gravity="center_horizontal">
+
+        <!-- Top Type Badge (ROOM INVITE / FRIEND REQUEST) -->
+        <TextView
+            android:id="@+id/tvInviteBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#10B981"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="ROOM INVITATION ✉️"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- Inviter Avatar -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivInviterAvatar"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginTop="16dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+            app:srcCompat="@drawable/ic_profile" />
+
+        <!-- Inviter Name -->
+        <TextView
+            android:id="@+id/tvInviterName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Player Name"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Inviter Subtitle / Level -->
+        <TextView
+            android:id="@+id/tvInviterSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Level 1 • Online"
+            android:textColor="#F59E0B"
+            android:textSize="13sp" />
+
+        <!-- Description Message -->
+        <TextView
+            android:id="@+id/tvInviteDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="#1E293B"
+            android:padding="12dp"
+            android:text="Invited you to join their game room!"
+            android:textColor="#E2E8F0"
+            android:textSize="13sp"
+            android:gravity="center" />
+
+        <!-- Action Buttons: Accept & Ignore -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="20dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeclineInvite"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Ignore"
+                android:textColor="#94A3B8"
+                app:strokeColor="#475569"
+                app:cornerRadius="14dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAcceptInvite"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="ACCEPT"
+                android:textColor="#FFFFFF"
+                app:backgroundTint="#10B981"
+                app:cornerRadius="14dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

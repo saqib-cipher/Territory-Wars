@@ -103,39 +103,27 @@ public class ModernFButton extends Button {
 		if (attrs != null) {
 			TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ModernFButton);
 			try {
-				buttonColor = a.getColor(R.styleable.ModernFButton_f_buttonColor, buttonColor);
-				if (a.hasValue(R.styleable.ModernFButton_f_shadowColor)) {
-					shadowColor = a.getColor(R.styleable.ModernFButton_f_shadowColor, shadowColor);
+				buttonColor = a.getColor(R.styleable.ModernFButton_mfb_buttonColor, buttonColor);
+				if (a.hasValue(R.styleable.ModernFButton_mfb_shadowColor)) {
+					shadowColor = a.getColor(R.styleable.ModernFButton_mfb_shadowColor, shadowColor);
 					shadowColorDefined = true;
 				}
-				shadowHeightPx = a.getDimensionPixelSize(R.styleable.ModernFButton_f_shadowHeight, shadowHeightPx);
-				cornerRadiusPx = a.getDimensionPixelSize(R.styleable.ModernFButton_f_cornerRadius, cornerRadiusPx);
-				shadowEnabled = a.getBoolean(R.styleable.ModernFButton_f_shadowEnabled, shadowEnabled);
-				rippleEnabled = a.getBoolean(R.styleable.ModernFButton_f_rippleEnabled, rippleEnabled);
-				rippleColor = a.getColor(R.styleable.ModernFButton_f_rippleColor, rippleColor);
-				iconSizePx = a.getDimensionPixelSize(R.styleable.ModernFButton_f_iconSize, iconSizePx);
-				iconPaddingPx = a.getDimensionPixelSize(R.styleable.ModernFButton_f_iconPadding, iconPaddingPx);
-				iconGravity = a.getInt(R.styleable.ModernFButton_f_iconGravity, iconGravity);
-				if (a.hasValue(R.styleable.ModernFButton_f_iconTint)) {
-					iconTintColor = a.getColor(R.styleable.ModernFButton_f_iconTint, Color.WHITE);
+				shadowHeightPx = a.getDimensionPixelSize(R.styleable.ModernFButton_mfb_shadowHeight, shadowHeightPx);
+				cornerRadiusPx = a.getDimensionPixelSize(R.styleable.ModernFButton_mfb_cornerRadius, cornerRadiusPx);
+				shadowEnabled = a.getBoolean(R.styleable.ModernFButton_mfb_shadowEnabled, shadowEnabled);
+				rippleEnabled = a.getBoolean(R.styleable.ModernFButton_mfb_rippleEnabled, rippleEnabled);
+				rippleColor = a.getColor(R.styleable.ModernFButton_mfb_rippleColor, rippleColor);
+				iconSizePx = a.getDimensionPixelSize(R.styleable.ModernFButton_mfb_iconSize, iconSizePx);
+				iconPaddingPx = a.getDimensionPixelSize(R.styleable.ModernFButton_mfb_iconPadding, iconPaddingPx);
+				iconGravity = a.getInt(R.styleable.ModernFButton_mfb_iconGravity, iconGravity);
+				if (a.hasValue(R.styleable.ModernFButton_mfb_iconTint)) {
+					iconTintColor = a.getColor(R.styleable.ModernFButton_mfb_iconTint, Color.WHITE);
 				}
-				if (a.hasValue(R.styleable.ModernFButton_f_iconSrc)) {
-					iconDrawable = a.getDrawable(R.styleable.ModernFButton_f_iconSrc);
+				if (a.hasValue(R.styleable.ModernFButton_mfb_iconSrc)) {
+					iconDrawable = a.getDrawable(R.styleable.ModernFButton_mfb_iconSrc);
 				}
 			} finally {
 				a.recycle();
-			}
-		}
-
-		if (iconDrawable == null) {
-			// Read standard Android XML icon attributes (android:drawableStart, android:drawableLeft, app:icon)
-			Drawable[] drawables = getCompoundDrawablesRelative();
-			if (drawables != null && drawables[0] != null) iconDrawable = drawables[0];
-			else if (drawables != null && drawables[2] != null) iconDrawable = drawables[2];
-			else {
-				drawables = getCompoundDrawables();
-				if (drawables != null && drawables[0] != null) iconDrawable = drawables[0];
-				else if (drawables != null && drawables[2] != null) iconDrawable = drawables[2];
 			}
 		}
 
@@ -203,9 +191,8 @@ public class ModernFButton extends Button {
 			if (iconTintColor != null) {
 				icon.setTint(iconTintColor);
 			}
-			int defaultSize = Math.round(18f * getResources().getDisplayMetrics().density);
-			int w = iconSizePx > 0 ? iconSizePx : (icon.getIntrinsicWidth() > 0 ? icon.getIntrinsicWidth() : defaultSize);
-			int h = iconSizePx > 0 ? iconSizePx : (icon.getIntrinsicHeight() > 0 ? icon.getIntrinsicHeight() : defaultSize);
+			int w = iconSizePx > 0 ? iconSizePx : icon.getIntrinsicWidth();
+			int h = iconSizePx > 0 ? iconSizePx : icon.getIntrinsicHeight();
 			icon.setBounds(0, 0, w, h);
 		}
 
@@ -239,9 +226,7 @@ public class ModernFButton extends Button {
 		setCompoundDrawablesRelative(start, top, end, bottom);
 
 		final Drawable finalIcon = icon;
-		boolean isWrapContent = getLayoutParams() != null && getLayoutParams().width == android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-
-		if (finalIcon != null && (isStart || isEnd) && !isWrapContent) {
+		if (finalIcon != null && (isStart || isEnd)) {
 			setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
 			post(new Runnable() {
 				@Override public void run() {

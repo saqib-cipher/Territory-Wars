@@ -114,6 +114,7 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
     private boolean isVoiceListening = false;
     private boolean hasActiveGameplayStarted = false;
     private boolean isMatchPaused = false;
+    private boolean hasNavigatedToResults = false;
 
     private final Set<String> mutedPlayersSet = new HashSet<>();
     private final Set<String> speakingPlayersSet = new HashSet<>();
@@ -357,8 +358,27 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                 if ("PLAYING".equalsIgnoreCase(status) || "IN_PROGRESS".equalsIgnoreCase(status)) {
                     hasActiveGameplayStarted = true;
                 }
-                if ("FINISHED".equalsIgnoreCase(status) || "CLOSED".equalsIgnoreCase(status)) {
-                    showGameFinished();
+
+                // FINISHED = game completed normally → show WinnerActivity
+                if ("FINISHED".equalsIgnoreCase(status)) {
+                    if (!hasNavigatedToResults) {
+                        hasNavigatedToResults = true;
+                        showGameFinished();
+                    }
+                    return;
+                }
+
+                // CLOSED = room closed by host or player quit → show abandoned dialog
+                if ("CLOSED".equalsIgnoreCase(status) || "ABANDONED".equalsIgnoreCase(status)) {
+                    if (hasActiveGameplayStarted && !hasNavigatedToResults && !isOfflineMode) {
+                        hasNavigatedToResults = true;
+                        requireActivity().runOnUiThread(() -> {
+                            if (!isAdded() || getActivity() == null) return;
+                            String myUid = preferences != null ? preferences.getUserId() : "";
+                            boolean isHost = myUid != null && myUid.equals(currentHostUid);
+                            showMatchAbandonedDialog(isHost);
+                        });
+                    }
                     return;
                 }
 
@@ -405,17 +425,6 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                     }
                 }
                 roomPlayersList = pList;
-
-                String roomStatus = snapshot.child("status").getValue(String.class);
-                if (hasActiveGameplayStarted && ("CLOSED".equalsIgnoreCase(roomStatus) || "ABANDONED".equalsIgnoreCase(roomStatus)) && !isOfflineMode) {
-                    requireActivity().runOnUiThread(() -> {
-                        if (!isAdded() || getActivity() == null) return;
-                        String myUid = preferences != null ? preferences.getUserId() : "";
-                        boolean isHost = myUid != null && myUid.equals(currentHostUid);
-                        showMatchAbandonedDialog(isHost);
-                    });
-                    return;
-                }
 
                 // Read Q&A History
                 List<RoomInfo.QuestionItem> historyList = new ArrayList<>();
@@ -1187,6 +1196,25 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                         lobbyReset.put("questionsRemaining", 20);
                         firebaseManager.getRoomRef(currentRoomId).updateChildren(lobbyReset);
                         firebaseManager.getRoomRef(currentRoomId).child("qaHistory").removeValue();
+
+                        // Prune all quit/disconnected players so only the active host remains in the lobby
+                        String myUid = preferences != null ? preferences.getUserId() : "";
+                        firebaseManager.getRoomRef(currentRoomId).child("players").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot snapshot) {
+                                for (DataSnapshot pSnap : snapshot.getChildren()) {
+                                    String pUid = pSnap.getKey();
+                                    if (pUid != null && !pUid.equals(myUid)) {
+                                        pSnap.getRef().removeValue();
+                                    } else if (pUid != null && pUid.equals(myUid)) {
+                                        pSnap.child("isReady").getRef().setValue(false);
+                                        pSnap.child("isAway").getRef().setValue(false);
+                                        pSnap.child("score").getRef().setValue(0);
+                                    }
+                                }
+                            }
+                            @Override public void onCancelled(DatabaseError error) {}
+                        });
                     }
                     if (getActivity() != null) {
                         Intent intent = new Intent(requireContext(), glab.guesscard.activities.LobbyActivity.class);

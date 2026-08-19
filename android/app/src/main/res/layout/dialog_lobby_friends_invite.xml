@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Left-Floating Side Dialog for Inviting Friends in Lobby -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardBackgroundColor="#0F172A"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="16dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1.5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvFriendsDialogTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Invite Friends 👥"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnCloseFriendsDialog"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/cancel"
+                app:tint="#94A3B8"
+                android:contentDescription="Close" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Send real-time game invitations to your friends"
+            android:textColor="#94A3B8"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="12dp"
+            android:background="#1E293B" />
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvNoFriendsFound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No friends yet.\nAdd friends from public profiles or search!"
+            android:textColor="#64748B"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:padding="24dp"
+            android:visibility="gone" />
+
+        <!-- Friends List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvLobbyFriendsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="360dp"
+            android:scrollbars="vertical" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

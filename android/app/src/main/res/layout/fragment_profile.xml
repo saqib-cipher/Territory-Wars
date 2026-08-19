@@ -110,6 +110,27 @@
 
             </LinearLayout>
 
+            <!-- ── PENDING INVITATIONS & FRIEND REQUESTS ── -->
+            <TextView
+                android:id="@+id/tvPendingHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="PENDING INVITATIONS &amp; REQUESTS"
+                android:textColor="#10B981"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPendingInvites"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
             <!-- ── GAME HISTORY SECTION ── -->
             <TextView
                 android:layout_width="match_parent"

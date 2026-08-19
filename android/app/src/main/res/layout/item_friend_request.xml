@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 Pending Friend Request Item Layout -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="5dp"
+    app:cardBackgroundColor="#1E293B"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="3dp"
+    app:strokeColor="#6366F1"
+    app:strokeWidth="1.5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Request Sender Avatar -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivReqAvatar"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+            app:srcCompat="@drawable/ic_profile" />
+
+        <!-- Sender Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tvReqUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Player Name"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Sent a Friend Request"
+                android:textColor="#38BDF8"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <!-- Decline Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeclineReq"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:text="Decline"
+            android:textSize="11sp"
+            android:textColor="#EF4444"
+            app:strokeColor="#EF4444"
+            app:cornerRadius="10dp" />
+
+        <!-- Accept Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAcceptReq"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Accept"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#10B981"
+            app:cornerRadius="10dp" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

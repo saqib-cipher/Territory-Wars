@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ModernFButton">
+        <attr name="mfb_buttonColor" format="color"/>
+        <attr name="mfb_shadowColor" format="color"/>
+        <attr name="mfb_shadowHeight" format="dimension"/>
+        <attr name="mfb_shadowEnabled" format="boolean"/>
+        <attr name="mfb_cornerRadius" format="dimension"/>
+        <attr name="mfb_rippleEnabled" format="boolean"/>
+        <attr name="mfb_rippleColor" format="color"/>
+        <attr name="mfb_iconSrc" format="reference"/>
+        <attr name="mfb_iconSize" format="dimension"/>
+        <attr name="mfb_iconPadding" format="dimension"/>
+        <attr name="mfb_iconTint" format="color"/>
+        <attr name="mfb_iconGravity" format="enum">
+            <enum name="textStart" value="0"/>
+            <enum name="textEnd" value="1"/>
+            <enum name="top" value="2"/>
+            <enum name="bottom" value="3"/>
+            <enum name="edgeStart" value="4"/>
+            <enum name="edgeEnd" value="5"/>
+        </attr>
+    </declare-styleable>
+</resources>

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -38,6 +39,7 @@ import glab.guesscard.models.GameMode;
 import glab.guesscard.models.RoomInfo;
 import glab.guesscard.socket.GameSocketClient;
 import glab.guesscard.socket.GameSocketListener;
+import glab.guesscard.utils.AvatarManager;
 
 /**
  * Lobby for multiplayer Guess the Card:
@@ -54,7 +56,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     private GameSocketClient socket;
     private FirebaseManager firebaseManager;
     private LobbyPlayerAdapter playerAdapter;
-    private TextView roomCodeText;
+    private ModernFButton roomCodeText;
     private TextView roomNameText;
     private TextView roomModeText;
     private ModernFButton readyButton;
@@ -90,19 +92,20 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         roomModeText = findViewById(R.id.roomModeText);
         readyButton = findViewById(R.id.readyButton);
         playersList = findViewById(R.id.playersList);
-        rvInviteFriends = findViewById(R.id.rvInviteFriends);
+        ModernFButton btnOpenInviteFriends = findViewById(R.id.btnOpenInviteFriends);
 
-        View codeContainer = findViewById(R.id.roomCodeContainer);
-        if (codeContainer != null) {
-            codeContainer.setOnClickListener(v -> {
+        if (btnOpenInviteFriends != null) {
+            btnOpenInviteFriends.setOnClickListener(v -> showFriendsInviteDialog());
+        }
+
+        if (roomCodeText != null) {
+            roomCodeText.setOnClickListener(v -> {
                 String code = roomCodeText != null ? roomCodeText.getText().toString() : "";
                 if (!code.isEmpty() && !code.equals("------")) {
-                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    android.content.ClipData clip = android.content.ClipData.newPlainText("Room Code", code);
-                    if (clipboard != null) {
-                        clipboard.setPrimaryClip(clip);
-                        Toast.makeText(this, "Copied Room Code: " + code, Toast.LENGTH_SHORT).show();
-                    }
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("text/plain");
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, code);
+                    startActivity(Intent.createChooser(shareIntent, "Share Room Code"));
                 }
             });
         }
@@ -113,10 +116,6 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         if (playersList != null) {
             playersList.setLayoutManager(new LinearLayoutManager(this));
             playersList.setAdapter(playerAdapter);
-        }
-
-        if (rvInviteFriends != null) {
-            rvInviteFriends.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         }
 
         updateReadyButtonUI();
@@ -282,56 +281,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     }
 
     private void loadFriendsToInvite() {
-        String uid = prefs().getUserId();
-        if (uid == null || firebaseManager == null || currentRoomId == null) return;
-
-        // Get the live player list from Firebase to accurately know who's already in the room
-        firebaseManager.getRoomRef(currentRoomId).child("players")
-                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
-                    @Override
-                    public void onDataChange(@androidx.annotation.NonNull com.google.firebase.database.DataSnapshot snapshot) {
-                        java.util.Set<String> roomPlayerUids = new java.util.HashSet<>();
-                        for (com.google.firebase.database.DataSnapshot pSnap : snapshot.getChildren()) {
-                            // Player uid can be stored as key or as "uid" field
-                            String pUid = pSnap.child("uid").getValue(String.class);
-                            if (pUid == null || pUid.isEmpty()) pUid = pSnap.getKey();
-                            if (pUid != null) roomPlayerUids.add(pUid);
-                        }
-
-                        firebaseManager.getFriends(uid, list -> runOnUiThread(() -> {
-                            if (rvInviteFriends == null) return;
-                            if (list == null || list.isEmpty()) {
-                                View header = findViewById(R.id.tvInviteFriendsHeader);
-                                if (header != null) header.setVisibility(View.GONE);
-                                rvInviteFriends.setVisibility(View.GONE);
-                                return;
-                            }
-
-                            // Filter out friends already inside this lobby
-                            java.util.List<java.util.Map<String, Object>> unjoinedFriends = new java.util.ArrayList<>();
-                            for (java.util.Map<String, Object> friend : list) {
-                                String fUid = (String) friend.get("uid");
-                                if (fUid == null) fUid = (String) friend.get("userId");
-                                boolean alreadyJoined = fUid != null && roomPlayerUids.contains(fUid);
-                                if (!alreadyJoined) {
-                                    unjoinedFriends.add(friend);
-                                }
-                            }
-
-                            View header = findViewById(R.id.tvInviteFriendsHeader);
-                            if (unjoinedFriends.isEmpty()) {
-                                if (header != null) header.setVisibility(View.GONE);
-                                rvInviteFriends.setVisibility(View.GONE);
-                            } else {
-                                if (header != null) header.setVisibility(View.VISIBLE);
-                                rvInviteFriends.setVisibility(View.VISIBLE);
-                                rvInviteFriends.setAdapter(new InviteFriendsAdapter(unjoinedFriends));
-                            }
-                        }));
-                    }
-                    @Override
-                    public void onCancelled(@androidx.annotation.NonNull com.google.firebase.database.DatabaseError error) {}
-                });
+        // Handled dynamically via floating friends invite dialog (btnOpenInviteFriends)
     }
 
     private void toggleReady() {
@@ -828,25 +778,77 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
     private final java.util.Set<String> sentInvitesSet = new java.util.HashSet<>();
 
-    // ── INVITE FRIENDS ADAPTER ──────────────────────────────────────────────
+    private final Map<String, Long> inviteCooldownMap = new HashMap<>();
+    private AlertDialog friendsInviteDialog = null;
 
-    private class InviteFriendsAdapter extends RecyclerView.Adapter<InviteFriendsAdapter.VH> {
+    private void showFriendsInviteDialog() {
+        String myUid = prefs().getUserId();
+        if (myUid == null || isFinishing()) return;
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_lobby_friends_invite, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            android.view.WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+            lp.gravity = android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL;
+            dialog.getWindow().setAttributes(lp);
+        }
+
+        View btnClose = dialogView.findViewById(R.id.btnCloseFriendsDialog);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        RecyclerView rvFriends = dialogView.findViewById(R.id.rvLobbyFriendsList);
+        TextView tvEmpty = dialogView.findViewById(R.id.tvNoFriendsFound);
+
+        if (rvFriends != null) {
+            rvFriends.setLayoutManager(new LinearLayoutManager(this));
+        }
+
+        firebaseManager.getFriends(myUid, friendsList -> runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (friendsList == null || friendsList.isEmpty()) {
+                if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+                if (rvFriends != null) rvFriends.setVisibility(View.GONE);
+            } else {
+                if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
+                if (rvFriends != null) {
+                    rvFriends.setVisibility(View.VISIBLE);
+                    rvFriends.setAdapter(new LobbyFriendsInviteDialogAdapter(friendsList));
+                }
+            }
+        }));
+
+        friendsInviteDialog = dialog;
+        dialog.show();
+    }
+
+    private static String formatLastSeen(long timestamp) {
+        if (timestamp <= 0) return "Offline";
+        long diff = System.currentTimeMillis() - timestamp;
+        if (diff < 60 * 1000) return "Just now";
+        if (diff < 60 * 60 * 1000) return (diff / (60 * 1000)) + "m ago";
+        if (diff < 24 * 60 * 60 * 1000) return (diff / (60 * 60 * 1000)) + "h ago";
+        return (diff / (24 * 60 * 60 * 1000)) + "d ago";
+    }
+
+    // ── FLOATING INVITE FRIENDS DIALOG ADAPTER ──────────────────────────────
+
+    private class LobbyFriendsInviteDialogAdapter extends RecyclerView.Adapter<LobbyFriendsInviteDialogAdapter.VH> {
         private final List<Map<String, Object>> friends;
 
-        InviteFriendsAdapter(List<Map<String, Object>> friends) {
+        LobbyFriendsInviteDialogAdapter(List<Map<String, Object>> friends) {
             this.friends = friends;
         }
 
         @NonNull
         @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            ModernFButton btn = new ModernFButton(parent.getContext());
-            btn.setLayoutParams(new ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Math.round(40 * parent.getContext().getResources().getDisplayMetrics().density)));
-            btn.setTextSize(11.0f);
-            btn.setCornerRadiusDp(12f);
-            return new VH(btn);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_lobby_friend_invite, parent, false);
+            return new VH(v);
         }
 
         @Override
@@ -854,17 +856,27 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             Map<String, Object> friend = friends.get(position);
             String fUid = (String) friend.getOrDefault("uid", "");
             String fName = (String) friend.getOrDefault("displayName", "Friend");
-            String fStatus = (String) friend.getOrDefault("status", "Online");
-            Long lastSeen = null;
-            if (friend.get("lastSeen") instanceof Long) {
-                lastSeen = (Long) friend.get("lastSeen");
-            }
+            String fAvatar = (String) friend.getOrDefault("avatarFileName", "avatar1.png");
+            String fStatus = (String) friend.getOrDefault("status", "Offline");
+            Long lastSeen = friend.get("lastSeen") instanceof Long ? (Long) friend.get("lastSeen") : null;
+
+            holder.tvName.setText(fName);
+            AvatarManager.getInstance().loadAvatarIntoImageView(LobbyActivity.this, holder.ivAvatar, fAvatar);
 
             boolean isOnline = "Online".equalsIgnoreCase(fStatus) ||
                     (lastSeen != null && System.currentTimeMillis() - lastSeen < 5 * 60 * 1000L);
-            boolean isPlaying = "Playing".equalsIgnoreCase(fStatus);
-            boolean isAlreadyInvited = sentInvitesSet.contains(fUid);
 
+            if (isOnline) {
+                holder.vOnlineDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#10B981")));
+                holder.tvStatus.setText("🟢 Online");
+                holder.tvStatus.setTextColor(Color.parseColor("#10B981"));
+            } else {
+                holder.vOnlineDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#64748B")));
+                holder.tvStatus.setText("⚪ Offline • " + formatLastSeen(lastSeen != null ? lastSeen : 0));
+                holder.tvStatus.setTextColor(Color.parseColor("#94A3B8"));
+            }
+
+            // Check if already in lobby
             boolean isAlreadyInLobby = false;
             if (room != null && room.players != null && fUid != null) {
                 for (RoomInfo.LobbyPlayer p : room.players) {
@@ -875,51 +887,44 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 }
             }
 
+            Long cooldownEnd = inviteCooldownMap.get(fUid);
+            long now = System.currentTimeMillis();
+
             if (isAlreadyInLobby) {
-                holder.button.setText(fName + " (In Lobby)");
-                holder.button.setEnabled(false);
-                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                holder.button.setTextColor(android.graphics.Color.parseColor("#64748B"));
-                holder.button.setShadowHeightDp(0f);
-            } else if (isPlaying) {
-                holder.button.setText(fName + " (Playing)");
-                holder.button.setEnabled(false);
-                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                holder.button.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
-                holder.button.setShadowHeightDp(0f);
-            } else if (isAlreadyInvited) {
-                holder.button.setText("Invited " + fName + " ✓");
-                holder.button.setEnabled(false);
-                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                holder.button.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
-                holder.button.setShadowHeightDp(0f);
-            } else if (!isOnline) {
-                holder.button.setText(fName + " (Offline)");
-                holder.button.setEnabled(false);
-                holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                holder.button.setTextColor(android.graphics.Color.parseColor("#475569"));
-                holder.button.setShadowHeightDp(0f);
+                holder.btnAction.setText("In Lobby");
+                holder.btnAction.setEnabled(false);
+                holder.btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#1E293B")));
+                holder.btnAction.setTextColor(Color.parseColor("#64748B"));
+            } else if (cooldownEnd != null && cooldownEnd > now) {
+                long remainingSec = (cooldownEnd - now) / 1000 + 1;
+                holder.btnAction.setText("Invited (" + remainingSec + "s)");
+                holder.btnAction.setEnabled(false);
+                holder.btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#1E293B")));
+                holder.btnAction.setTextColor(Color.parseColor("#38BDF8"));
+                startInviteCooldownTimer(holder.btnAction, fUid, cooldownEnd - now);
             } else {
-                holder.button.setText("Invite " + fName + " ✉️");
-                holder.button.setEnabled(true);
-                holder.button.setButtonColor(android.graphics.Color.parseColor("#2563EB"));
-                holder.button.setTextColor(android.graphics.Color.WHITE);
-                holder.button.setShadowHeightDp(2f);
-                holder.button.setOnClickListener(v -> {
-                    if (currentRoomId != null && fUid != null && !sentInvitesSet.contains(fUid)) {
-                        sentInvitesSet.add(fUid);
+                holder.btnAction.setText("+ Invite");
+                holder.btnAction.setEnabled(true);
+                holder.btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#2563EB")));
+                holder.btnAction.setTextColor(Color.WHITE);
+
+                holder.btnAction.setOnClickListener(v -> {
+                    if (currentRoomId != null && fUid != null && !fUid.isEmpty()) {
+                        long cd = System.currentTimeMillis() + 10000L;
+                        inviteCooldownMap.put(fUid, cd);
+
                         String code = roomCodeText != null ? roomCodeText.getText().toString() : "";
                         String myName = prefs().getUsername();
-                        firebaseManager.sendRoomInvite(fUid, currentRoomId, code, myName);
+                        String myAvatar = prefs().getAvatarFileName();
+                        String mode = room != null && room.mode != null ? room.mode : "ANIMALS";
+
+                        firebaseManager.sendRoomInvite(fUid, currentRoomId, code, myName, myAvatar, mode);
                         if (socket != null && socket.isConnected()) {
                             socket.sendRoomInvite(fUid);
                         }
-                        holder.button.setText("Invited " + fName + " ✓");
-                        holder.button.setEnabled(false);
-                        holder.button.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                        holder.button.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
-                        holder.button.setShadowHeightDp(0f);
-                        Toast.makeText(LobbyActivity.this, "Invitation sent to " + fName, Toast.LENGTH_SHORT).show();
+
+                        Toast.makeText(LobbyActivity.this, "Invitation sent to " + fName + "! ✉️", Toast.LENGTH_SHORT).show();
+                        notifyItemChanged(holder.getAdapterPosition());
                     }
                 });
             }
@@ -931,11 +936,41 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         }
 
         class VH extends RecyclerView.ViewHolder {
-            ModernFButton button;
-            VH(View itemView) {
-                super(itemView);
-                button = (ModernFButton) itemView;
+            com.google.android.material.imageview.ShapeableImageView ivAvatar;
+            View vOnlineDot;
+            TextView tvName, tvStatus;
+            com.google.android.material.button.MaterialButton btnAction;
+
+            VH(View v) {
+                super(v);
+                ivAvatar = v.findViewById(R.id.ivLobbyFriendAvatar);
+                vOnlineDot = v.findViewById(R.id.vLobbyOnlineDot);
+                tvName = v.findViewById(R.id.tvLobbyFriendName);
+                tvStatus = v.findViewById(R.id.tvLobbyFriendStatus);
+                btnAction = v.findViewById(R.id.btnInviteFriendAction);
             }
         }
+    }
+
+    private void startInviteCooldownTimer(com.google.android.material.button.MaterialButton btn, String fUid, long millis) {
+        new CountDownTimer(millis, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                if (btn != null) {
+                    btn.setText("Invited (" + (millisUntilFinished / 1000 + 1) + "s)");
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                inviteCooldownMap.remove(fUid);
+                if (btn != null) {
+                    btn.setText("+ Invite");
+                    btn.setEnabled(true);
+                    btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#2563EB")));
+                    btn.setTextColor(Color.WHITE);
+                }
+            }
+        }.start();
     }
 }

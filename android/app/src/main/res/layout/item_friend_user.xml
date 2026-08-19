@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 Friends List Item Layout -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="5dp"
+    app:cardBackgroundColor="#1E293B"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Friend Avatar + Online Status Dot -->
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivFriendAvatar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+                app:srcCompat="@drawable/ic_profile" />
+
+            <View
+                android:id="@+id/onlineStatusDot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="bottom|end"
+                android:background="#10B981" />
+        </FrameLayout>
+
+        <!-- Friend Name & Level -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tvFriendUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Saqib Cipher"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvFriendLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Level 5 • Online"
+                android:textColor="#F59E0B"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- Invite to Room Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnInviteFriend"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:text="Invite ✉️"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#6366F1"
+            app:cornerRadius="10dp" />
+
+        <!-- Remove / Profile Options Button -->
+        <ImageButton
+            android:id="@+id/btnFriendMenu"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Options"
+            app:srcCompat="@drawable/cog"
+            app:tint="#94A3B8" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

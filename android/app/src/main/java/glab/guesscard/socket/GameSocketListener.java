@@ -25,7 +25,8 @@ public interface GameSocketListener {
     /** Called when a guess is submitted and result is known. */
     default void onGuessResult(String guessedBy, String guess, boolean isCorrect, int scoreAwarded, String cardAnswer) {}
     /** Engine compat: offline only (one-arg guess result). */
-    default void onGuessResult(boolean isCorrect, String guess, int scoreAwarded, int totalScore) {}
     default void onTurnStarted(String nextTurnPlayerId, int currentRound) {}
+    default void onRoomInviteReceived(String roomId, String code, String senderId, String senderName, String senderAvatar, String mode) {}
+    default void onFriendRequestReceived(String senderId, String senderName, String senderAvatar) {}
 }
 

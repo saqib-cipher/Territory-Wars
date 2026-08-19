@@ -135,7 +135,7 @@ function handleConnection(io, socket, rooms, userSocketMap) {
       }
     });
 
-    // ---- Friend Invites ----
+    // ---- Friend Invites & Requests ----
     socket.on('sendRoomInvite', (targetUserId) => {
       const room = rooms.findById(socket.data.roomId);
       if (!room) return;
@@ -144,11 +144,35 @@ function handleConnection(io, socket, rooms, userSocketMap) {
         io.to(targetSocketId).emit('roomInvitation', {
           senderId: user.id,
           senderName: user.username,
+          senderAvatar: user.avatarFileName || 'avatar1.png',
           roomId: room.roomId,
           code: room.code,
           mode: room.mode,
         });
       }
+    });
+
+    socket.on('sendFriendRequest', (payload) => {
+      const targetUserId = typeof payload === 'string' ? payload : (payload && payload.targetUserId);
+      if (!targetUserId) return;
+      const targetSocketId = userSocketMap.get(targetUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('friendRequestReceived', {
+          senderId: user.id,
+          senderName: user.username,
+          senderAvatar: user.avatarFileName || 'avatar1.png',
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    socket.on('checkOnlineStatus', (userIds, callback) => {
+      if (!Array.isArray(userIds) || typeof callback !== 'function') return;
+      const statusMap = {};
+      for (const uid of userIds) {
+        statusMap[uid] = userSocketMap.has(uid);
+      }
+      callback(statusMap);
     });
 
     // ---- Chat ----

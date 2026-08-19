@@ -55,13 +55,19 @@ public class PublicProfileActivity extends BaseActivity {
                     refreshFriendState(btnFriend, myUid, targetUid);
                     btnFriend.setOnClickListener(v -> {
                         if (myUid == null) return;
-                        boolean isFriendNow = btnFriend.getTag() != null && Boolean.TRUE.equals(btnFriend.getTag());
-                        if (isFriendNow) {
+                        Object tag = btnFriend.getTag();
+                        if (tag == FirebaseManager.FriendshipStatus.FRIENDS) {
                             mgr.removeFriend(myUid, targetUid);
                             Toast.makeText(this, "Friend removed", Toast.LENGTH_SHORT).show();
+                        } else if (tag == FirebaseManager.FriendshipStatus.REQUEST_SENT) {
+                            // Already requested
+                            return;
                         } else {
-                            mgr.addFriend(myUid, targetUid);
-                            Toast.makeText(this, "Friend added!", Toast.LENGTH_SHORT).show();
+                            mgr.sendFriendRequest(myUid, targetUid);
+                            if (container() != null && container().getSocketClient() != null) {
+                                container().getSocketClient().sendFriendRequest(targetUid);
+                            }
+                            Toast.makeText(this, "Friend request sent ✉️", Toast.LENGTH_SHORT).show();
                         }
                         refreshFriendState(btnFriend, myUid, targetUid);
                     });
@@ -74,7 +80,7 @@ public class PublicProfileActivity extends BaseActivity {
                         String name = (String) data.getOrDefault("displayName", "Player");
                         tvName.setText(name);
 
-                        String avatarFile = (String) data.getOrDefault("avatarFileName", "avatar_01.png");
+                        String avatarFile = (String) data.getOrDefault("avatarFileName", "avatar1.png");
                         if (imgAvatar != null) {
                             glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(this, imgAvatar, avatarFile);
                         }
@@ -100,14 +106,20 @@ public class PublicProfileActivity extends BaseActivity {
     }
 
     private void refreshFriendState(ModernFButton btnFriend, String myUid, String targetUid) {
-        container().getFirebaseManager().isFriend(myUid, targetUid, isFriend -> runOnUiThread(() -> {
-            if (btnFriend == null) return;
-            btnFriend.setTag(isFriend);
-            if (isFriend != null && isFriend) {
+        container().getFirebaseManager().checkFriendshipStatus(myUid, targetUid, status -> runOnUiThread(() -> {
+            if (btnFriend == null || isFinishing() || isDestroyed()) return;
+            btnFriend.setTag(status);
+            if (status == FirebaseManager.FriendshipStatus.FRIENDS) {
                 btnFriend.setText("Remove Friend");
+                btnFriend.setEnabled(true);
                 btnFriend.setAlpha(1.0f);
+            } else if (status == FirebaseManager.FriendshipStatus.REQUEST_SENT) {
+                btnFriend.setText("Requested ⏳");
+                btnFriend.setEnabled(false);
+                btnFriend.setAlpha(0.7f);
             } else {
-                btnFriend.setText("Add Friend");
+                btnFriend.setText("+ Add Friend");
+                btnFriend.setEnabled(true);
                 btnFriend.setAlpha(1.0f);
             }
         }));

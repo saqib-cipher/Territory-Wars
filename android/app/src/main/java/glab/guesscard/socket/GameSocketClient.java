@@ -257,10 +257,72 @@ public class GameSocketClient {
             socket.on("livekit_token_error", onLiveKitTokenError);
             socket.on("livekit_token_fallback", onLiveKitTokenFallback);
             socket.on("publicRoomsList", onPublicRoomsList);
+            socket.on("roomInvitation", args -> {
+                if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
+                    JSONObject d = (JSONObject) args[0];
+                    String rId = d.optString("roomId");
+                    String code = d.optString("code");
+                    String sId = d.optString("senderId");
+                    String sName = d.optString("senderName");
+                    String sAvatar = d.optString("senderAvatar", "avatar1.png");
+                    String mode = d.optString("mode", "ANIMALS");
+                    listener.onRoomInviteReceived(rId, code, sId, sName, sAvatar, mode);
+                }
+            });
+            socket.on("friendRequestReceived", args -> {
+                if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
+                    JSONObject d = (JSONObject) args[0];
+                    String sId = d.optString("senderId");
+                    String sName = d.optString("senderName", "Player");
+                    String sAvatar = d.optString("senderAvatar", "avatar1.png");
+                    listener.onFriendRequestReceived(sId, sName, sAvatar);
+                }
+            });
             socket.connect();
         } catch (Exception e) {
             Log.e(TAG, "failed to create socket", e);
         }
+    }
+
+    public interface OnlineStatusCallback {
+        void onStatusResult(Map<String, Boolean> statusMap);
+    }
+
+    public void checkOnlineStatus(java.util.List<String> userIds, OnlineStatusCallback callback) {
+        if (userIds == null || userIds.isEmpty() || callback == null) {
+            if (callback != null) callback.onStatusResult(new java.util.HashMap<>());
+            return;
+        }
+        if (!isConnected()) connect();
+        if (socket != null) {
+            org.json.JSONArray arr = new org.json.JSONArray(userIds);
+            socket.emit("checkOnlineStatus", arr, (io.socket.client.Ack) args -> {
+                Map<String, Boolean> map = new java.util.HashMap<>();
+                if (args.length > 0 && args[0] instanceof JSONObject) {
+                    JSONObject obj = (JSONObject) args[0];
+                    for (String uid : userIds) {
+                        map.put(uid, obj.optBoolean(uid, false));
+                    }
+                }
+                callback.onStatusResult(map);
+            });
+        }
+    }
+
+    public void sendFriendRequest(String targetUserId) {
+        if (targetUserId == null || targetUserId.isEmpty()) return;
+        if (!isConnected()) connect();
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("targetUserId", targetUserId);
+            emit("sendFriendRequest", obj);
+        } catch (Exception ignored) {}
+    }
+
+    public void sendRoomInvite(String targetUserId) {
+        if (targetUserId == null || targetUserId.isEmpty()) return;
+        if (!isConnected()) connect();
+        emit("sendRoomInvite", targetUserId);
     }
 
     public void disconnect() {
@@ -310,10 +372,6 @@ public class GameSocketClient {
 
     public void sendChat(String roomId, String text) {
         emit("chatMessage", roomId, text);
-    }
-
-    public void sendRoomInvite(String targetUserId) {
-        emit("sendRoomInvite", targetUserId);
     }
 
     // ---- Voice commands ----

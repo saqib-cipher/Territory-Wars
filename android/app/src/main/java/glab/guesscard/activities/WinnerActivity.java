@@ -66,6 +66,13 @@ public class WinnerActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_winner);
 
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                Toast.makeText(WinnerActivity.this, "Use 'Return to Home' button to exit", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         String winnerName = getIntent().getStringExtra("winnerName");
         int finalScore = getIntent().getIntExtra("finalScore", 0);
         String roomId = getIntent().getStringExtra("roomId");
@@ -179,27 +186,47 @@ public class WinnerActivity extends BaseActivity {
             rvWinnerLeaderboard.setAdapter(new WinnerAdapter(standings));
         }
 
-        // Save Match History & Update Stats in Firebase for Current User
+        // Save Unified Match History to root /matches/{matchId} and link to /users/{uid}/playedMatches
         String myUid = prefs().getUserId();
-        if (myUid != null && container() != null && container().getFirebaseManager() != null) {
-            int myRank = 1;
-            int myScore = 0;
+        String roomId = getIntent().getStringExtra("roomId");
+        String secretCard = getIntent().getStringExtra("secretCard");
+        String winnerUid = "";
+
+        List<Map<String, Object>> standingsMapList = new ArrayList<>();
+        if (standings != null) {
             for (int i = 0; i < standings.size(); i++) {
-                if (standings.get(i).uid != null && standings.get(i).uid.equals(myUid)) {
-                    myRank = i + 1;
-                    myScore = standings.get(i).finalScore;
-                    break;
+                StandingsEntry entry = standings.get(i);
+                Map<String, Object> map = new HashMap<>();
+                map.put("uid", entry.uid != null ? entry.uid : "");
+                map.put("username", entry.username != null ? entry.username : "Player");
+                map.put("avatarFileName", entry.avatarFileName != null ? entry.avatarFileName : "avatar1.png");
+                map.put("rank", i + 1);
+                map.put("score", entry.finalScore);
+                map.put("baseScore", entry.baseScore);
+                map.put("bonusPoints", entry.bonusPoints);
+                map.put("questionsUsed", entry.questionsUsed);
+                boolean isWinner = (i == 0);
+                map.put("isWinner", isWinner);
+                if (isWinner && entry.uid != null) {
+                    winnerUid = entry.uid;
                 }
+                standingsMapList.add(map);
             }
-            boolean isWinner = myRank == 1;
-            container().getFirebaseManager().saveMatchHistory(
-                    myUid,
-                    winnerName,
-                    myScore,
+        }
+
+        String matchId = (roomId != null && !roomId.isEmpty() && !"offline_room".equals(roomId))
+                ? (roomId + "_" + System.currentTimeMillis())
+                : ("match_" + System.currentTimeMillis());
+
+        if (container() != null && container().getFirebaseManager() != null) {
+            container().getFirebaseManager().saveMatchRecord(
+                    matchId,
+                    roomId,
                     mode != null ? mode : "ANIMALS",
-                    isWinner,
-                    myRank,
-                    standings.size()
+                    winnerName,
+                    winnerUid,
+                    secretCard,
+                    standingsMapList
             );
         }
     }

@@ -34,6 +34,54 @@ public class MainActivity extends BaseActivity {
             navController = navHost.getNavController();
             NavigationUI.setupWithNavController(bottomNav, navController);
         }
+
+        setupProfileBadgeListener(bottomNav);
+    }
+
+    private void setupProfileBadgeListener(BottomNavigationView bottomNav) {
+        if (bottomNav == null || prefs() == null) return;
+        String uid = prefs().getUserId();
+        if (uid == null || uid.isEmpty()) return;
+
+        if (container() != null && container().getFirebaseManager() != null) {
+            com.google.firebase.database.DatabaseReference userRef =
+                    container().getFirebaseManager().getDatabaseRef().child("users").child(uid);
+
+            final long[] reqCount = {0};
+            final long[] invCount = {0};
+
+            userRef.child("friendRequests").addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+                @Override
+                public void onDataChange(@androidx.annotation.NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                    reqCount[0] = snapshot.getChildrenCount();
+                    updateProfileBadge(bottomNav, (int) (reqCount[0] + invCount[0]));
+                }
+                @Override public void onCancelled(@androidx.annotation.NonNull com.google.firebase.database.DatabaseError error) {}
+            });
+
+            userRef.child("invites").addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+                @Override
+                public void onDataChange(@androidx.annotation.NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                    invCount[0] = snapshot.getChildrenCount();
+                    updateProfileBadge(bottomNav, (int) (reqCount[0] + invCount[0]));
+                }
+                @Override public void onCancelled(@androidx.annotation.NonNull com.google.firebase.database.DatabaseError error) {}
+            });
+        }
+    }
+
+    private void updateProfileBadge(BottomNavigationView bottomNav, int totalPending) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed() || bottomNav == null) return;
+            if (totalPending > 0) {
+                com.google.android.material.badge.BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.profileFragment);
+                badge.setVisible(true);
+                badge.setNumber(totalPending);
+                badge.setBackgroundColor(android.graphics.Color.parseColor("#EF4444"));
+            } else {
+                bottomNav.removeBadge(R.id.profileFragment);
+            }
+        });
     }
 
     @Override

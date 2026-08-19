@@ -45,6 +45,21 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_global_invitation.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_match_abandoned.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_player_action.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_reward.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
@@ -90,13 +105,66 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_match_details_player.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_match_history.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_recent_match.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_room_invite.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_winner_standing.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
     </layouts>
   </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="fixed something" />
+    <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="icon ne jo">
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/.artifacts/80005a88-606d-4e16-90c2-7498bc87247c/implementation_plan.artifact.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/values/attrs_modern_fbutton.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/ModernFButton.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/ModernFButton.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/BaseActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/BaseActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/MainActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/MainActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_chat.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/attrs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/src/socket/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/socket/index.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -193,6 +261,9 @@
   &quot;fromUser&quot;: false
 }</component>
   <component name="ProjectId" id="3HaAt8VNNV9gNYx3mW26IA2Qqkp" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectReloadState">
     <option name="STATE" value="1" />
   </component>
@@ -202,6 +273,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;Android App.androidTest.executor&quot;: &quot;Run&quot;,
     &quot;Android App.app.executor&quot;: &quot;Run&quot;,
     &quot;Android App.main.executor&quot;: &quot;Run&quot;,
     &quot;Gradle.C:/Users/sddrk/Documents/Projects/Territory Wars/android/gradle.executor&quot;: &quot;Run&quot;,
@@ -233,14 +305,14 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\java\glab\guesscard" />
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\res\values" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets\sounds" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main" />
-      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android" />
-      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\java\com\territorywars" />
     </key>
   </component>
-  <component name="RunManager" selected="Android App.main">
+  <component name="RunManager" selected="Android App.app">
     <configuration name="androidTest" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
       <module name="Territory_Wars.app.androidTest" />
       <option name="ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
@@ -730,7 +802,23 @@
       <option name="project" value="LOCAL" />
       <updated>1787078822360</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="fixed something">
+      <option name="closed" value="true" />
+      <created>1787079401001</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1787079401001</updated>
+    </task>
+    <task id="LOCAL-00022" summary="icon ne jo">
+      <option name="closed" value="true" />
+      <created>1787117571721</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1787117571722</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -754,7 +842,8 @@
     <MESSAGE value="fixed nrew" />
     <MESSAGE value="rturtrxj" />
     <MESSAGE value="fixed something" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed something" />
+    <MESSAGE value="icon ne jo" />
+    <option name="LAST_COMMIT_MESSAGE" value="icon ne jo" />
     <option name="GROUP_MULTIFILE_MERGE_BY_DIRECTORY" value="true" />
   </component>
   <component name="play_dynamic_filters_status">

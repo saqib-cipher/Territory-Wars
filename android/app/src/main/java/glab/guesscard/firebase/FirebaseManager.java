@@ -21,9 +21,12 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Central Firebase manager for Guess Card.
@@ -259,31 +262,160 @@ public class FirebaseManager {
         return database.child("rooms").child(roomId);
     }
 
-    /** Save match result to /users/{uid}/gameHistory/ */
-    public void saveGameHistory(String uid, String mode, int score, boolean won, String cardGuessed) {
-        if (uid == null) return;
-        DatabaseReference ref = database.child("users").child(uid).child("gameHistory").push();
-        Map<String, Object> item = new HashMap<>();
-        item.put("mode", mode);
-        item.put("score", score);
-        item.put("won", won);
-        item.put("cardGuessed", cardGuessed != null ? cardGuessed : "");
-        item.put("timestamp", ServerValue.TIMESTAMP);
-        ref.setValue(item);
+    /**
+     * Save finished match record to root /matches/{matchId} and link matchId to each player under /users/{uid}/playedMatches/{matchId} = true.
+     */
+    public void saveMatchRecord(String matchId,
+                                String roomId,
+                                String mode,
+                                String winnerName,
+                                String winnerUid,
+                                String secretCard,
+                                List<Map<String, Object>> standings) {
+        if (matchId == null || matchId.isEmpty()) {
+            matchId = database.child("matches").push().getKey();
+            if (matchId == null) matchId = "match_" + System.currentTimeMillis();
+        }
+
+        final String finalMatchId = matchId;
+        DatabaseReference matchRef = database.child("matches").child(finalMatchId);
+
+        Map<String, Object> matchData = new HashMap<>();
+        matchData.put("matchId", finalMatchId);
+        matchData.put("roomId", roomId != null ? roomId : "");
+        matchData.put("mode", mode != null ? mode : "ANIMALS");
+        matchData.put("winnerName", winnerName != null ? winnerName : "Winner");
+        matchData.put("winnerUid", winnerUid != null ? winnerUid : "");
+        matchData.put("secretCard", secretCard != null ? secretCard : "");
+        matchData.put("timestamp", ServerValue.TIMESTAMP);
+        matchData.put("totalPlayers", standings != null ? standings.size() : 1);
+        matchData.put("standings", standings != null ? standings : new ArrayList<>());
+
+        matchRef.setValue(matchData);
+
+        // Link matchId under /users/{uid}/playedMatches/{matchId} = true for each player and update player stats
+        if (standings != null) {
+            for (Map<String, Object> entry : standings) {
+                String pUid = (String) entry.get("uid");
+                if (pUid != null && !pUid.isEmpty() && !"offline".equalsIgnoreCase(pUid)) {
+                    database.child("users").child(pUid).child("playedMatches").child(finalMatchId).setValue(true);
+
+                    Object scoreObj = entry.get("score");
+                    int pScore = scoreObj instanceof Number ? ((Number) scoreObj).intValue() : 0;
+                    boolean isWinner = Boolean.TRUE.equals(entry.get("isWinner")) || (winnerUid != null && winnerUid.equals(pUid));
+
+                    DatabaseReference statsRef = database.child("users").child(pUid).child("stats");
+                    statsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            Long games = snapshot.child("gamesPlayed").getValue(Long.class);
+                            Long wins = snapshot.child("wins").getValue(Long.class);
+                            Long totalScore = snapshot.child("totalScore").getValue(Long.class);
+
+                            long newGames = (games != null ? games : 0L) + 1;
+                            long newWins = (wins != null ? wins : 0L) + (isWinner ? 1 : 0);
+                            long newScore = (totalScore != null ? totalScore : 0L) + Math.max(0, pScore);
+                            long newLevel = Math.max(1, (newScore / 500) + 1);
+
+                            Map<String, Object> stats = new HashMap<>();
+                            stats.put("gamesPlayed", newGames);
+                            stats.put("wins", newWins);
+                            stats.put("totalScore", newScore);
+                            stats.put("level", newLevel);
+
+                            statsRef.updateChildren(stats);
+                            database.child("users").child(pUid).child("level").setValue(newLevel);
+                        }
+
+                        @Override public void onCancelled(@NonNull DatabaseError error) {}
+                    });
+                }
+            }
+        }
     }
 
-    /** Retrieve past game history for user. */
-    public void getGameHistory(String uid, DataCallback<List<Map<String, Object>>> callback) {
-        if (uid == null) {
+    /**
+     * Retrieve played matches for user by looking up match IDs in /users/{uid}/playedMatches/
+     * and fetching the full match data from root /matches/{matchId}/.
+     */
+    public void getPlayedMatches(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null || callback == null) {
             if (callback != null) callback.onResult(new ArrayList<>());
             return;
         }
-        database.child("users").child(uid).child("gameHistory")
-                .orderByChild("timestamp")
-                .limitToLast(20)
+
+        database.child("users").child(uid).child("playedMatches")
+                .limitToLast(30)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
-                    public void onDataChange(DataSnapshot snapshot) {
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<String> matchIds = new ArrayList<>();
+                        for (DataSnapshot child : snapshot.getChildren()) {
+                            if (child.getKey() != null) matchIds.add(child.getKey());
+                        }
+
+                        if (matchIds.isEmpty()) {
+                            // Fallback: check legacy matchHistory or gameHistory if playedMatches not yet populated
+                            getLegacyGameHistory(uid, callback);
+                            return;
+                        }
+
+                        List<Map<String, Object>> matchesList = new ArrayList<>();
+                        final int total = matchIds.size();
+                        final int[] loaded = {0};
+
+                        for (String mId : matchIds) {
+                            database.child("matches").child(mId).addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot matchSnap) {
+                                    //noinspection unchecked
+                                    Map<String, Object> val = (Map<String, Object>) matchSnap.getValue();
+                                    if (val != null) {
+                                        if (!val.containsKey("matchId")) val.put("matchId", mId);
+                                        matchesList.add(val);
+                                    }
+                                    loaded[0]++;
+                                    if (loaded[0] >= total) {
+                                        // Sort matches by timestamp descending
+                                        Collections.sort(matchesList, (a, b) -> {
+                                            long tA = a.get("timestamp") instanceof Long ? (Long) a.get("timestamp") : 0L;
+                                            long tB = b.get("timestamp") instanceof Long ? (Long) b.get("timestamp") : 0L;
+                                            return Long.compare(tB, tA);
+                                        });
+                                        callback.onResult(matchesList);
+                                    }
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+                                    loaded[0]++;
+                                    if (loaded[0] >= total) {
+                                        Collections.sort(matchesList, (a, b) -> {
+                                            long tA = a.get("timestamp") instanceof Long ? (Long) a.get("timestamp") : 0L;
+                                            long tB = b.get("timestamp") instanceof Long ? (Long) b.get("timestamp") : 0L;
+                                            return Long.compare(tB, tA);
+                                        });
+                                        callback.onResult(matchesList);
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        getLegacyGameHistory(uid, callback);
+                    }
+                });
+    }
+
+    private void getLegacyGameHistory(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        database.child("users").child(uid).child("matchHistory")
+                .orderByChild("timestamp")
+                .limitToLast(30)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
                         List<Map<String, Object>> history = new ArrayList<>();
                         for (DataSnapshot child : snapshot.getChildren()) {
                             //noinspection unchecked
@@ -292,11 +424,15 @@ public class FirebaseManager {
                         }
                         if (callback != null) callback.onResult(history);
                     }
-                    @Override
-                    public void onCancelled(DatabaseError error) {
+                    @Override public void onCancelled(@NonNull DatabaseError error) {
                         if (callback != null) callback.onResult(new ArrayList<>());
                     }
                 });
+    }
+
+    /** Retrieve past game history for user (delegates to getPlayedMatches). */
+    public void getGameHistory(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        getPlayedMatches(uid, callback);
     }
 
     public enum FriendshipStatus {
@@ -313,6 +449,8 @@ public class FirebaseManager {
         database.child("users").child(friendUid).child("friends").child(uid).setValue(true);
         database.child("users").child(uid).child("friendRequests").child(friendUid).removeValue();
         database.child("users").child(friendUid).child("friendRequests").child(uid).removeValue();
+        database.child("users").child(uid).child("sentRequests").child(friendUid).removeValue();
+        database.child("users").child(friendUid).child("sentRequests").child(uid).removeValue();
     }
 
     /** Remove a friend */
@@ -325,7 +463,90 @@ public class FirebaseManager {
     /** Send friend request under /users/{targetUid}/friendRequests/{senderUid} */
     public void sendFriendRequest(String senderUid, String targetUid) {
         if (senderUid == null || targetUid == null) return;
-        database.child("users").child(targetUid).child("friendRequests").child(senderUid).setValue(true);
+        database.child("users").child(targetUid).child("friendRequests").child(senderUid).setValue(ServerValue.TIMESTAMP);
+        database.child("users").child(senderUid).child("sentRequests").child(targetUid).setValue(ServerValue.TIMESTAMP);
+    }
+
+    /** Retrieve incoming pending friend requests */
+    public void getIncomingFriendRequests(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null || callback == null) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        database.child("users").child(uid).child("friendRequests").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> senderUids = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    if (child.getKey() != null) senderUids.add(child.getKey());
+                }
+                if (senderUids.isEmpty()) {
+                    callback.onResult(new ArrayList<>());
+                    return;
+                }
+                List<Map<String, Object>> list = new ArrayList<>();
+                final int total = senderUids.size();
+                final int[] loaded = {0};
+                for (String sUid : senderUids) {
+                    getUserProfile(sUid, profile -> {
+                        Map<String, Object> finalProf = profile;
+                        if (finalProf == null) {
+                            finalProf = new HashMap<>();
+                            finalProf.put("uid", sUid);
+                            finalProf.put("username", "Player " + (sUid.length() > 4 ? sUid.substring(0, 4) : sUid));
+                            finalProf.put("displayName", "Player " + (sUid.length() > 4 ? sUid.substring(0, 4) : sUid));
+                            finalProf.put("avatarFileName", "avatar1.png");
+                        } else if (!finalProf.containsKey("uid")) {
+                            finalProf.put("uid", sUid);
+                        }
+                        list.add(finalProf);
+                        loaded[0]++;
+                        if (loaded[0] >= total) {
+                            callback.onResult(list);
+                        }
+                    }, error -> {
+                        Map<String, Object> fallback = new HashMap<>();
+                        fallback.put("uid", sUid);
+                        fallback.put("username", "Player " + (sUid.length() > 4 ? sUid.substring(0, 4) : sUid));
+                        fallback.put("displayName", "Player " + (sUid.length() > 4 ? sUid.substring(0, 4) : sUid));
+                        fallback.put("avatarFileName", "avatar1.png");
+                        list.add(fallback);
+                        loaded[0]++;
+                        if (loaded[0] >= total) {
+                            callback.onResult(list);
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                callback.onResult(new ArrayList<>());
+            }
+        });
+    }
+
+    /** Retrieve sent friend request UIDs */
+    public void getSentFriendRequests(String uid, DataCallback<Set<String>> callback) {
+        if (uid == null || callback == null) {
+            if (callback != null) callback.onResult(new HashSet<>());
+            return;
+        }
+        database.child("users").child(uid).child("sentRequests").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Set<String> set = new HashSet<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    if (child.getKey() != null) set.add(child.getKey());
+                }
+                callback.onResult(set);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                callback.onResult(new HashSet<>());
+            }
+        });
     }
 
     /** Check detailed friendship status between two users. */
@@ -456,37 +677,67 @@ public class FirebaseManager {
     }
 
     public interface InviteCallback {
-        void onInviteReceived(String roomId, String roomCode, String senderName);
+        void onInviteReceived(String inviteId, String roomId, String roomCode, String senderUid, String senderName, String senderAvatar, String mode);
+    }
+
+    public interface FriendRequestCallback {
+        void onRequestReceived(String senderUid, String senderName, String senderAvatar);
     }
 
     /** Send room invitation to a friend */
     public void sendRoomInvite(String friendUid, String roomId, String roomCode, String senderName) {
+        sendRoomInvite(friendUid, roomId, roomCode, senderName, "avatar1.png", "ANIMALS");
+    }
+
+    /** Send room invitation to a friend with avatar and mode */
+    public void sendRoomInvite(String friendUid, String roomId, String roomCode, String senderName, String senderAvatar, String mode) {
         if (friendUid == null || roomId == null) return;
+        String myUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : preferenceManager.getUserId();
+        String myName = senderName != null && !senderName.isEmpty() ? senderName : preferenceManager.getUsername();
+        String myAvatar = senderAvatar != null && !senderAvatar.isEmpty() ? senderAvatar : preferenceManager.getAvatarFileName();
+
         DatabaseReference ref = database.child("users").child(friendUid).child("invites").push();
         Map<String, Object> invite = new HashMap<>();
         invite.put("roomId", roomId);
         invite.put("roomCode", roomCode != null ? roomCode : "");
-        invite.put("senderName", senderName != null ? senderName : "A Friend");
+        invite.put("senderUid", myUid != null ? myUid : "");
+        invite.put("senderName", myName != null ? myName : "A Friend");
+        invite.put("senderAvatar", myAvatar != null ? myAvatar : "avatar1.png");
+        invite.put("mode", mode != null ? mode : "ANIMALS");
         invite.put("timestamp", ServerValue.TIMESTAMP);
         ref.setValue(invite);
     }
 
-    /** Listen for real-time room invitations for current user using ChildEventListener for instant delivery */
+    /** Listen for real-time room invitations for current user */
     public ChildEventListener listenForRoomInvites(String uid, InviteCallback callback) {
         if (uid == null || callback == null) return null;
+        final long listenerAttachTime = System.currentTimeMillis();
         DatabaseReference ref = database.child("users").child(uid).child("invites");
         ChildEventListener listener = new ChildEventListener() {
+            private final java.util.Set<String> shownInviteKeys = new java.util.HashSet<>();
+
             @Override
             public void onChildAdded(@NonNull DataSnapshot child, @Nullable String previousChildName) {
                 //noinspection unchecked
                 Map<String, Object> val = (Map<String, Object>) child.getValue();
                 if (val != null) {
+                    String inviteId = child.getKey();
                     String rId = (String) val.get("roomId");
                     String code = (String) val.get("roomCode");
                     String sender = (String) val.get("senderName");
-                    child.getRef().removeValue();
-                    if (rId != null && !rId.isEmpty()) {
-                        callback.onInviteReceived(rId, code, sender);
+                    String senderUid = (String) val.get("senderUid");
+                    String senderAvatar = (String) val.get("senderAvatar");
+                    String mode = (String) val.get("mode");
+                    Object tsObj = val.get("timestamp");
+                    long timestamp = tsObj instanceof Long ? (Long) tsObj : listenerAttachTime;
+
+                    // Trigger popup if invite is fresh (within 5 min) and not yet shown in this session
+                    boolean isFresh = (timestamp >= listenerAttachTime - 300000L);
+                    if (inviteId != null && isFresh && !shownInviteKeys.contains(inviteId)) {
+                        shownInviteKeys.add(inviteId);
+                        if (rId != null && !rId.isEmpty()) {
+                            callback.onInviteReceived(inviteId, rId, code, senderUid, sender, senderAvatar, mode);
+                        }
                     }
                 }
             }
@@ -500,10 +751,145 @@ public class FirebaseManager {
         return listener;
     }
 
-    /** Remove room invitation listener */
+    /** Listen for incoming real-time friend requests (only new ones added after listener attaches) */
+    public ChildEventListener listenForFriendRequests(String uid, FriendRequestCallback callback) {
+        if (uid == null || callback == null) return null;
+        final long attachTime = System.currentTimeMillis();
+        DatabaseReference ref = database.child("users").child(uid).child("friendRequests");
+        ChildEventListener listener = new ChildEventListener() {
+            private final java.util.Set<String> shownKeys = new java.util.HashSet<>();
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot child, @Nullable String previousChildName) {
+                String senderUid = child.getKey();
+                Object val = child.getValue();
+                long ts = 0;
+                if (val instanceof Long) ts = (Long) val;
+                else if (val instanceof Boolean) ts = attachTime;
+
+                // Trigger popup if request is fresh (within 5 min) and not yet shown
+                boolean isFresh = (ts >= attachTime - 300000L);
+                if (senderUid != null && isFresh && !shownKeys.contains(senderUid)) {
+                    shownKeys.add(senderUid);
+                    getUserProfile(senderUid, profile -> {
+                        String name = profile != null ? (String) profile.get("username") : "Player";
+                        String avatar = profile != null ? (String) profile.get("avatarFileName") : "avatar1.png";
+                        callback.onRequestReceived(senderUid, name, avatar);
+                    });
+                }
+            }
+
+            @Override public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}
+            @Override public void onChildRemoved(@NonNull DataSnapshot snapshot) {}
+            @Override public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        ref.addChildEventListener(listener);
+        return listener;
+    }
+
+    /** Remove listeners */
     public void removeRoomInviteListener(String uid, ChildEventListener listener) {
         if (uid == null || listener == null) return;
         database.child("users").child(uid).child("invites").removeEventListener(listener);
+    }
+
+    public void removeFriendRequestListener(String uid, ChildEventListener listener) {
+        if (uid == null || listener == null) return;
+        database.child("users").child(uid).child("friendRequests").removeEventListener(listener);
+    }
+
+    /** Retrieve pending room invites for user */
+    public void getPendingRoomInvites(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        database.child("users").child(uid).child("invites").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<Map<String, Object>> list = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    //noinspection unchecked
+                    Map<String, Object> val = (Map<String, Object>) child.getValue();
+                    if (val != null) {
+                        if (!val.containsKey("key")) val.put("key", child.getKey());
+                        list.add(val);
+                    }
+                }
+                if (callback != null) callback.onResult(list);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onResult(new ArrayList<>());
+            }
+        });
+    }
+
+    /** Retrieve pending friend requests for user */
+    public void getPendingFriendRequests(String uid, DataCallback<List<Map<String, Object>>> callback) {
+        if (uid == null) {
+            if (callback != null) callback.onResult(new ArrayList<>());
+            return;
+        }
+        database.child("users").child(uid).child("friendRequests").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> senderUids = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    senderUids.add(child.getKey());
+                }
+                if (senderUids.isEmpty()) {
+                    if (callback != null) callback.onResult(new ArrayList<>());
+                    return;
+                }
+                List<Map<String, Object>> requests = new ArrayList<>();
+                final int[] loaded = {0};
+                for (String senderUid : senderUids) {
+                    getUserProfile(senderUid, profile -> {
+                        Map<String, Object> finalProf = profile;
+                        if (finalProf == null) {
+                            finalProf = new HashMap<>();
+                            finalProf.put("uid", senderUid);
+                            finalProf.put("username", "Player " + (senderUid.length() > 4 ? senderUid.substring(0, 4) : senderUid));
+                            finalProf.put("displayName", "Player " + (senderUid.length() > 4 ? senderUid.substring(0, 4) : senderUid));
+                            finalProf.put("avatarFileName", "avatar1.png");
+                        } else if (!finalProf.containsKey("uid")) {
+                            finalProf.put("uid", senderUid);
+                        }
+                        requests.add(finalProf);
+                        loaded[0]++;
+                        if (loaded[0] >= senderUids.size() && callback != null) {
+                            callback.onResult(requests);
+                        }
+                    }, error -> {
+                        Map<String, Object> fallback = new HashMap<>();
+                        fallback.put("uid", senderUid);
+                        fallback.put("username", "Player " + (senderUid.length() > 4 ? senderUid.substring(0, 4) : senderUid));
+                        fallback.put("displayName", "Player " + (senderUid.length() > 4 ? senderUid.substring(0, 4) : senderUid));
+                        fallback.put("avatarFileName", "avatar1.png");
+                        requests.add(fallback);
+                        loaded[0]++;
+                        if (loaded[0] >= senderUids.size() && callback != null) {
+                            callback.onResult(requests);
+                        }
+                    });
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                if (callback != null) callback.onResult(new ArrayList<>());
+            }
+        });
+    }
+
+    /** Dismiss / Delete room invite */
+    public void declineRoomInvite(String uid, String inviteKey) {
+        if (uid == null || inviteKey == null) return;
+        database.child("users").child(uid).child("invites").child(inviteKey).removeValue();
+    }
+
+    /** Decline / Delete friend request */
+    public void declineFriendRequest(String uid, String senderUid) {
+        if (uid == null || senderUid == null) return;
+        database.child("users").child(uid).child("friendRequests").child(senderUid).removeValue();
     }
 
     /** Save finished match record under /users/{uid}/matchHistory/{matchId} and update stats */
