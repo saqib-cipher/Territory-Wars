@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="ModernFButton">
-        <attr name="f_buttonColor" format="color" />
-        <attr name="f_shadowColor" format="color" />
-        <attr name="f_shadowHeight" format="dimension" />
-        <attr name="f_cornerRadius" format="dimension" />
-        <attr name="f_shadowEnabled" format="boolean" />
-        <attr name="f_rippleEnabled" format="boolean" />
-        <attr name="f_rippleColor" format="color" />
-        <attr name="f_icon" format="reference" />
-        <attr name="f_iconSize" format="dimension" />
-        <attr name="f_iconPadding" format="dimension" />
-        <attr name="f_iconTint" format="color" />
+        <attr name="f_buttonColor" format="color"/>
+        <attr name="f_shadowColor" format="color"/>
+        <attr name="f_shadowHeight" format="dimension"/>
+        <attr name="f_shadowEnabled" format="boolean"/>
+        <attr name="f_cornerRadius" format="dimension"/>
+        <attr name="f_rippleEnabled" format="boolean"/>
+        <attr name="f_rippleColor" format="color"/>
+        <attr name="f_iconSrc" format="reference"/>
+        <attr name="f_iconSize" format="dimension"/>
+        <attr name="f_iconPadding" format="dimension"/>
+        <attr name="f_iconTint" format="color"/>
         <attr name="f_iconGravity">
-            <enum name="textStart" value="0" />
-            <enum name="textEnd" value="1" />
-            <enum name="top" value="2" />
-            <enum name="bottom" value="3" />
-            <enum name="edgeStart" value="4" />
-            <enum name="edgeEnd" value="5" />
+            <enum name="textStart" value="0"/>
+            <enum name="textEnd" value="1"/>
+            <enum name="top" value="2"/>
+            <enum name="bottom" value="3"/>
+            <enum name="edgeStart" value="4"/>
+            <enum name="edgeEnd" value="5"/>
         </attr>
     </declare-styleable>
 </resources>

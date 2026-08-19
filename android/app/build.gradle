@@ -27,7 +27,7 @@ android {
             buildConfigField "String", "SOCKET_URL", "\"${project.properties['gc.socketUrlRelease'] ?: 'https://territory-wars-9o4f.onrender.com'}\""
         }
         debug {
-            buildConfigField "String", "SOCKET_URL", "\"${project.properties['gc.socketUrlDebug'] ?: 'http://10.0.2.2:8080'}\""
+            buildConfigField "String", "SOCKET_URL", "\"${project.properties['gc.socketUrlDebug'] ?: 'https://territory-wars-9o4f.onrender.com'}\""
         }
     }
 

@@ -289,7 +289,7 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                     requireActivity().runOnUiThread(() -> {
                         if (isSpeaking) speakingPlayersSet.add(userId);
                         else speakingPlayersSet.remove(userId);
-                        renderPlayerAvatarsFromList(roomPlayersList, currentAnswererUid);
+                        updateSpeakingMicIndicator(userId, isSpeaking);
                     });
                 });
                 partyVoiceCallManager.startVoiceChat();
@@ -406,7 +406,8 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                 }
                 roomPlayersList = pList;
 
-                if (hasActiveGameplayStarted && pList.size() <= 1 && !isOfflineMode) {
+                String roomStatus = snapshot.child("status").getValue(String.class);
+                if (hasActiveGameplayStarted && ("CLOSED".equalsIgnoreCase(roomStatus) || "ABANDONED".equalsIgnoreCase(roomStatus)) && !isOfflineMode) {
                     requireActivity().runOnUiThread(() -> {
                         if (!isAdded() || getActivity() == null) return;
                         String myUid = preferences != null ? preferences.getUserId() : "";
@@ -549,11 +550,32 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
             }
 
             // Click opens custom interaction popup without navigating to profile
+            card.setTag(p.userId);
             card.setOnClickListener(v -> showPlayerActionDialog(p));
 
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             gamePlayerContainer.addView(card, lp);
+        }
+    }
+
+    private void updateSpeakingMicIndicator(String userId, boolean isSpeaking) {
+        if (gamePlayerContainer == null || userId == null || !isAdded()) return;
+        View card = gamePlayerContainer.findViewWithTag(userId);
+        if (card != null) {
+            ImageView ivSpeaking = card.findViewById(R.id.ivSpeakingMic);
+            ImageView ivMute = card.findViewById(R.id.ivMuteBadge);
+            String myUid = preferences != null ? preferences.getUserId() : "";
+            boolean isMuted = mutedPlayersSet.contains(userId) || (userId.equals(myUid) && isSelfMuted);
+            if (ivSpeaking != null) {
+                if (isSpeaking && !isMuted) {
+                    ivSpeaking.setVisibility(View.VISIBLE);
+                    startMicFlicker(ivSpeaking);
+                } else {
+                    ivSpeaking.setVisibility(View.GONE);
+                    stopMicFlicker(ivSpeaking);
+                }
+            }
         }
     }
 
@@ -1102,6 +1124,11 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         if (activity == null) return;
         activity.runOnUiThread(() -> {
             if (!isAdded() || getContext() == null) return;
+            
+            if (socket != null) {
+                socket.clearPendingRoom();
+            }
+
             String winner = "Player";
             int topScore = 0;
             for (RoomInfo.LobbyPlayer p : roomPlayersList) {
@@ -1175,6 +1202,10 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                 btnCloseRoom.setShadowColor(Color.parseColor("#991B1B"));
                 btnCloseRoom.setOnClickListener(v -> {
                     dialog.dismiss();
+                    if (socket != null) {
+                        socket.leaveRoom();
+                        socket.clearPendingRoom();
+                    }
                     if (currentRoomId != null && firebaseManager != null) {
                         firebaseManager.deleteRoom(currentRoomId);
                     }
@@ -1197,6 +1228,10 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                 btnBackHome.setShadowColor(Color.parseColor("#1D4ED8"));
                 btnBackHome.setOnClickListener(v -> {
                     dialog.dismiss();
+                    if (socket != null) {
+                        socket.leaveRoom();
+                        socket.clearPendingRoom();
+                    }
                     String myUid = preferences != null ? preferences.getUserId() : "";
                     if (currentRoomId != null && myUid != null && firebaseManager != null) {
                         firebaseManager.getRoomRef(currentRoomId).child("players").child(myUid).removeValue();
@@ -1425,7 +1460,10 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                 audioManager.setMode(AudioManager.MODE_NORMAL);
             } catch (Exception ignored) {}
         }
-        if (socket != null) socket.setListener(null);
+        if (socket != null) {
+            socket.clearPendingRoom();
+            socket.setListener(null);
+        }
         if (offlineEngine != null) offlineEngine.stop();
         if (voiceHelper != null) voiceHelper.release();
         super.onDestroyView();

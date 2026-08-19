@@ -55,7 +55,20 @@ public class GameSocketClient {
         if (listener != null) listener.onDisconnected();
     };
     private final Emitter.Listener onConnectError = args -> {
-        Log.e(TAG, "connect_error: " + (args.length > 0 ? args[0] : ""));
+        if (args.length > 0) {
+            Object arg = args[0];
+            if (arg instanceof Throwable) {
+                Throwable t = (Throwable) arg;
+                Log.e(TAG, "connect_error: " + t.getMessage(), t);
+                if (t.getCause() != null) {
+                    Log.e(TAG, "connect_error cause: " + t.getCause().getMessage(), t.getCause());
+                }
+            } else if (arg instanceof JSONObject) {
+                Log.e(TAG, "connect_error (json): " + arg);
+            } else {
+                Log.e(TAG, "connect_error: " + arg);
+            }
+        }
         if (listener != null) listener.onError(args.length > 0 ? String.valueOf(args[0]) : "connect_error");
     };
     private final Emitter.Listener onRoomJoined = args -> {
@@ -215,23 +228,16 @@ public class GameSocketClient {
     public void connect() {
         if (socket != null && socket.connected()) return;
         try {
-            okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
-                    .writeTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
-                    .retryOnConnectionFailure(true)
+            IO.Options options = IO.Options.builder()
+                    .setTransports(new String[]{"polling", "websocket"})
+                    .setAuth(buildAuth())
+                    .setQuery(buildQuery())
+                    .setReconnection(true)
+                    .setReconnectionAttempts(30)
+                    .setReconnectionDelay(1000)
                     .build();
 
-            IO.Options options = new IO.Options();
-            options.transports = new String[]{"websocket", "polling"};
-            options.auth = buildAuth();
-            options.query = buildQuery();
-            options.reconnection = true;
-            options.reconnectionAttempts = 20;
-            options.reconnectionDelay = 1000;
-            options.callFactory = okHttpClient;
-            options.webSocketFactory = okHttpClient;
-
+            Log.d(TAG, "connecting to socket URL: " + BuildConfig.SOCKET_URL);
             socket = IO.socket(BuildConfig.SOCKET_URL, options);
             socket.on(Socket.EVENT_CONNECT, onConnect);
             socket.on(Socket.EVENT_DISCONNECT, onDisconnect);
@@ -284,7 +290,14 @@ public class GameSocketClient {
     }
 
     public void leaveRoom() {
+        this.pendingRoomId = null;
+        this.pendingVoiceRoomId = null;
         emit("leaveRoom");
+    }
+
+    public void clearPendingRoom() {
+        this.pendingRoomId = null;
+        this.pendingVoiceRoomId = null;
     }
 
     public void setReady(boolean ready) {
@@ -332,6 +345,7 @@ public class GameSocketClient {
     }
 
     public void emitVoiceLeave(String roomId) {
+        this.pendingVoiceRoomId = null;
         emit("voice_leave", roomId);
     }
 
@@ -383,9 +397,15 @@ public class GameSocketClient {
     }
 
     private String buildQuery() {
-        String uid = preferences != null ? preferences.getUserId() : "";
-        String name = preferences != null ? preferences.getUsername() : "Player";
-        return "uid=" + (uid != null ? uid : "") + "&name=" + (name != null ? name : "Player");
+        try {
+            String uid = preferences != null ? preferences.getUserId() : "";
+            String name = preferences != null ? preferences.getUsername() : "Player";
+            String encUid = java.net.URLEncoder.encode(uid != null ? uid : "", "UTF-8");
+            String encName = java.net.URLEncoder.encode(name != null ? name : "Player", "UTF-8");
+            return "uid=" + encUid + "&name=" + encName;
+        } catch (Exception e) {
+            return "name=Player";
+        }
     }
 
     private void emit(String event, Object... args) {
