@@ -52,9 +52,12 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     public static final String EXTRA_ROOM_ID = "extra_room_id";
     public static final String EXTRA_ROOM_CODE = "extra_room_code";
     public static final String EXTRA_ROOM_NAME = "extra_room_name";
+    public static final String EXTRA_IS_BLUETOOTH = "extra_is_bluetooth";
 
     private GameSocketClient socket;
     private FirebaseManager firebaseManager;
+    private glab.guesscard.bluetooth.BluetoothMeshManager bluetoothMeshManager;
+    private boolean isBluetoothMode = false;
     private LobbyPlayerAdapter playerAdapter;
     private ModernFButton roomCodeText;
     private TextView roomNameText;
@@ -83,9 +86,17 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lobby);
 
+        isBluetoothMode = getIntent().getBooleanExtra(EXTRA_IS_BLUETOOTH, false);
         socket = container().getSocketClient();
         firebaseManager = container().getFirebaseManager();
-        socket.setListener(this);
+        bluetoothMeshManager = container().getBluetoothMeshManager();
+
+        if (isBluetoothMode) {
+            bluetoothMeshManager.setGameListener(this);
+        } else {
+            socket.setListener(this);
+            if (!socket.isConnected()) socket.connect();
+        }
 
         roomCodeText = findViewById(R.id.roomCodeText);
         roomNameText = findViewById(R.id.roomNameText);
@@ -215,6 +226,29 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         String roomNameExtra = getIntent().getStringExtra(EXTRA_ROOM_NAME);
         currentRoomName = roomNameExtra;
 
+        if (isBluetoothMode) {
+            currentRoomId = roomIdExtra != null ? roomIdExtra : ("bt_" + codeExtra);
+            currentRoomCode = codeExtra != null ? codeExtra : "BT-MESH";
+            if (roomCodeText != null) roomCodeText.setText(currentRoomCode);
+            if (roomNameText != null && currentRoomName != null) roomNameText.setText(currentRoomName);
+            if (roomModeText != null && mode != null) roomModeText.setText("Mode: " + mode + " 📡 BLUETOOTH");
+
+            if (bluetoothMeshManager != null && bluetoothMeshManager.isHosting()) {
+                room = bluetoothMeshManager.getCurrentRoomInfo();
+                if (room == null) {
+                    room = new RoomInfo();
+                    room.roomId = currentRoomId;
+                    room.code = currentRoomCode;
+                    room.name = currentRoomName;
+                    room.mode = mode != null ? mode : "ANIMALS";
+                    room.hostId = prefs().getUserId();
+                }
+                ensureLocalPlayerInList(room);
+                updateRoomUI(room);
+            }
+            return;
+        }
+
         if (roomIdExtra != null && !roomIdExtra.isEmpty()) {
             currentRoomId = roomIdExtra;
             currentRoomCode = codeExtra != null ? codeExtra : null;
@@ -288,6 +322,23 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         isLocallyReady = !isLocallyReady;
         updateReadyButtonUI();
 
+        if (isBluetoothMode) {
+            if (bluetoothMeshManager != null) {
+                bluetoothMeshManager.toggleReady(isLocallyReady);
+            }
+            String myUid = prefs().getUserId();
+            if (room != null && room.players != null) {
+                for (RoomInfo.LobbyPlayer p : room.players) {
+                    if (p.userId != null && p.userId.equals(myUid)) {
+                        p.isReady = isLocallyReady;
+                        break;
+                    }
+                }
+                updateRoomUI(room);
+            }
+            return;
+        }
+
         String myUid = prefs().getUserId();
         if (currentRoomId != null && myUid != null) {
             firebaseManager.getRoomRef(currentRoomId).child("players").child(myUid).child("ready").setValue(isLocallyReady);
@@ -312,6 +363,13 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
 
     private void leaveRoom() {
         isStartingGame = false;
+        if (isBluetoothMode) {
+            if (bluetoothMeshManager != null) bluetoothMeshManager.stopAllConnections();
+            cancelCountdown();
+            finish();
+            return;
+        }
+
         String myUid = prefs().getUserId();
         String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : currentRoomId;
         boolean isHost = myUid != null && myUid.equals(hostUid);
@@ -666,6 +724,18 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         String hostUid = (room != null && room.hostId != null && !room.hostId.isEmpty()) ? room.hostId : prefs().getUserId();
         matchAnswererUid = hostUid;
 
+        if (isBluetoothMode) {
+            if (bluetoothMeshManager != null) {
+                bluetoothMeshManager.startBluetoothGame(modeStr, hostUid, initialCard != null ? initialCard.word : "");
+            }
+            isStartingGame = true;
+            Intent intent = GameActivity.intent(this, gameMode, currentRoomId, 60_000L, matchAnswererUid);
+            intent.putExtra(EXTRA_IS_BLUETOOTH, true);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         Map<String, Object> matchInit = new HashMap<>();
         matchInit.put("status", "PLAYING");
         matchInit.put("secretCard", initialCard.word);
@@ -697,7 +767,9 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         if (isFinishing()) return;
         isStartingGame = true;
         String modeStr = room != null && room.mode != null ? room.mode : "ANIMALS";
-        startActivity(GameActivity.intent(this, GameMode.valueOf(modeStr), currentRoomId, 60_000L, matchAnswererUid));
+        Intent intent = GameActivity.intent(this, GameMode.valueOf(modeStr), currentRoomId, 60_000L, matchAnswererUid);
+        intent.putExtra(EXTRA_IS_BLUETOOTH, isBluetoothMode);
+        startActivity(intent);
         finish();
     }
 
@@ -735,7 +807,9 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         runOnUiThread(() -> {
             cancelCountdown();
             String rId = currentRoomId != null ? currentRoomId : "online_room";
-            startActivity(GameActivity.intent(this, GameMode.valueOf(mode), rId, durationMs, matchAnswererUid));
+            Intent intent = GameActivity.intent(this, GameMode.valueOf(mode), rId, durationMs, matchAnswererUid);
+            intent.putExtra(EXTRA_IS_BLUETOOTH, isBluetoothMode);
+            startActivity(intent);
             finish();
         });
     }
@@ -779,6 +853,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
     private final java.util.Set<String> sentInvitesSet = new java.util.HashSet<>();
 
     private final Map<String, Long> inviteCooldownMap = new HashMap<>();
+    private final Map<String, Boolean> inviteFriendsOnline = new java.util.concurrent.ConcurrentHashMap<>();
     private AlertDialog friendsInviteDialog = null;
 
     private void showFriendsInviteDialog() {
@@ -814,10 +889,21 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
                 if (rvFriends != null) rvFriends.setVisibility(View.GONE);
             } else {
-                if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
-                if (rvFriends != null) {
-                    rvFriends.setVisibility(View.VISIBLE);
-                    rvFriends.setAdapter(new LobbyFriendsInviteDialogAdapter(friendsList));
+                // Online status comes from the BACKEND socket (not firebase lastSeen)
+                List<String> uids = new ArrayList<>();
+                for (Map<String, Object> f : friendsList) {
+                    Object uid = f.get("uid");
+                    if (uid != null) uids.add(String.valueOf(uid));
+                }
+                GameSocketClient sc = container() != null ? container().getSocketClient() : null;
+                if (sc != null && !uids.isEmpty()) {
+                    sc.checkOnlineStatus(uids, statusMap -> runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed() || statusMap == null) return;
+                        inviteFriendsOnline.putAll(statusMap);
+                        bindFriendsInviteList(rvFriends, tvEmpty, friendsList);
+                    }));
+                } else {
+                    bindFriendsInviteList(rvFriends, tvEmpty, friendsList);
                 }
             }
         }));
@@ -826,13 +912,18 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
         dialog.show();
     }
 
-    private static String formatLastSeen(long timestamp) {
-        if (timestamp <= 0) return "Offline";
-        long diff = System.currentTimeMillis() - timestamp;
-        if (diff < 60 * 1000) return "Just now";
-        if (diff < 60 * 60 * 1000) return (diff / (60 * 1000)) + "m ago";
-        if (diff < 24 * 60 * 60 * 1000) return (diff / (60 * 60 * 1000)) + "h ago";
-        return (diff / (24 * 60 * 60 * 1000)) + "d ago";
+    private void bindFriendsInviteList(RecyclerView rvFriends, TextView tvEmpty, List<Map<String, Object>> friendsList) {
+        if (isFinishing() || isDestroyed()) return;
+        if (friendsList.isEmpty()) {
+            if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+            if (rvFriends != null) rvFriends.setVisibility(View.GONE);
+        } else {
+            if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
+            if (rvFriends != null) {
+                rvFriends.setVisibility(View.VISIBLE);
+                rvFriends.setAdapter(new LobbyFriendsInviteDialogAdapter(friendsList));
+            }
+        }
     }
 
     // ── FLOATING INVITE FRIENDS DIALOG ADAPTER ──────────────────────────────
@@ -857,14 +948,12 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             String fUid = (String) friend.getOrDefault("uid", "");
             String fName = (String) friend.getOrDefault("displayName", "Friend");
             String fAvatar = (String) friend.getOrDefault("avatarFileName", "avatar1.png");
-            String fStatus = (String) friend.getOrDefault("status", "Offline");
-            Long lastSeen = friend.get("lastSeen") instanceof Long ? (Long) friend.get("lastSeen") : null;
 
             holder.tvName.setText(fName);
             AvatarManager.getInstance().loadAvatarIntoImageView(LobbyActivity.this, holder.ivAvatar, fAvatar);
 
-            boolean isOnline = "Online".equalsIgnoreCase(fStatus) ||
-                    (lastSeen != null && System.currentTimeMillis() - lastSeen < 5 * 60 * 1000L);
+            // Backend socket status (live, not firebase lastSeen)
+            boolean isOnline = Boolean.TRUE.equals(inviteFriendsOnline.get(fUid));
 
             if (isOnline) {
                 holder.vOnlineDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#10B981")));
@@ -872,7 +961,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                 holder.tvStatus.setTextColor(Color.parseColor("#10B981"));
             } else {
                 holder.vOnlineDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#64748B")));
-                holder.tvStatus.setText("⚪ Offline • " + formatLastSeen(lastSeen != null ? lastSeen : 0));
+                holder.tvStatus.setText("⚪ Offline");
                 holder.tvStatus.setTextColor(Color.parseColor("#94A3B8"));
             }
 
@@ -919,8 +1008,8 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
                         String mode = room != null && room.mode != null ? room.mode : "ANIMALS";
 
                         firebaseManager.sendRoomInvite(fUid, currentRoomId, code, myName, myAvatar, mode);
-                        if (socket != null && socket.isConnected()) {
-                            socket.sendRoomInvite(fUid);
+                        if (socket != null) {
+                            socket.sendRoomInvite(fUid, currentRoomId, code, mode);
                         }
 
                         Toast.makeText(LobbyActivity.this, "Invitation sent to " + fName + "! ✉️", Toast.LENGTH_SHORT).show();

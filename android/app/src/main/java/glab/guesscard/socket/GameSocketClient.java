@@ -25,6 +25,12 @@ public class GameSocketClient {
     private final PreferenceManager preferences;
     private Socket socket;
     private GameSocketListener listener;
+    /**
+     * Global (backend-driven) listener used by BaseActivity for friend requests
+     * and room invitations on ANY screen. Kept separate from {@link #listener}
+     * so game/lobby screens can install their own listener without losing it.
+     */
+    private GameSocketListener globalListener;
     // Pending room/voice to rejoin after (re)connect
     private String pendingRoomId;
     private String pendingVoiceRoomId;
@@ -221,13 +227,33 @@ public class GameSocketClient {
         this.listener = listener;
     }
 
+    private String lastConnectedUid = null;
+
+    /** Global listener receives friend requests + room invitations regardless of screen. */
+    public void setGlobalEventListener(@Nullable GameSocketListener listener) {
+        this.globalListener = listener;
+    }
+
     public boolean isConnected() {
         return socket != null && socket.connected();
     }
 
     public void connect() {
-        if (socket != null && socket.connected()) return;
+        String currentUid = getResolvedUid();
+        if (socket != null && socket.connected() && currentUid.equals(lastConnectedUid)) {
+            return;
+        }
+
+        if (socket != null) {
+            try {
+                socket.off();
+                socket.disconnect();
+            } catch (Exception ignored) {}
+            socket = null;
+        }
+
         try {
+            lastConnectedUid = currentUid;
             IO.Options options = IO.Options.builder()
                     .setTransports(new String[]{"polling", "websocket"})
                     .setAuth(buildAuth())
@@ -237,7 +263,7 @@ public class GameSocketClient {
                     .setReconnectionDelay(1000)
                     .build();
 
-            Log.d(TAG, "connecting to socket URL: " + BuildConfig.SOCKET_URL);
+            Log.d(TAG, "connecting to socket URL: " + BuildConfig.SOCKET_URL + " with UID: " + currentUid);
             socket = IO.socket(BuildConfig.SOCKET_URL, options);
             socket.on(Socket.EVENT_CONNECT, onConnect);
             socket.on(Socket.EVENT_DISCONNECT, onDisconnect);
@@ -258,7 +284,7 @@ public class GameSocketClient {
             socket.on("livekit_token_fallback", onLiveKitTokenFallback);
             socket.on("publicRoomsList", onPublicRoomsList);
             socket.on("roomInvitation", args -> {
-                if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
+                if (args.length > 0 && args[0] instanceof JSONObject) {
                     JSONObject d = (JSONObject) args[0];
                     String rId = d.optString("roomId");
                     String code = d.optString("code");
@@ -266,16 +292,28 @@ public class GameSocketClient {
                     String sName = d.optString("senderName");
                     String sAvatar = d.optString("senderAvatar", "avatar1.png");
                     String mode = d.optString("mode", "ANIMALS");
-                    listener.onRoomInviteReceived(rId, code, sId, sName, sAvatar, mode);
+                    if (listener != null) listener.onRoomInviteReceived(rId, code, sId, sName, sAvatar, mode);
+                    if (globalListener != null) globalListener.onRoomInviteReceived(rId, code, sId, sName, sAvatar, mode);
                 }
             });
             socket.on("friendRequestReceived", args -> {
-                if (args.length > 0 && args[0] instanceof JSONObject && listener != null) {
+                if (args.length > 0 && args[0] instanceof JSONObject) {
                     JSONObject d = (JSONObject) args[0];
                     String sId = d.optString("senderId");
                     String sName = d.optString("senderName", "Player");
                     String sAvatar = d.optString("senderAvatar", "avatar1.png");
-                    listener.onFriendRequestReceived(sId, sName, sAvatar);
+                    if (listener != null) listener.onFriendRequestReceived(sId, sName, sAvatar);
+                    if (globalListener != null) globalListener.onFriendRequestReceived(sId, sName, sAvatar);
+                }
+            });
+            socket.on("friendRequestAccepted", args -> {
+                if (args.length > 0 && args[0] instanceof JSONObject) {
+                    JSONObject d = (JSONObject) args[0];
+                    String aId = d.optString("acceptorId");
+                    String aName = d.optString("acceptorName", "Player");
+                    String aAvatar = d.optString("acceptorAvatar", "avatar1.png");
+                    if (listener != null) listener.onFriendRequestAccepted(aId, aName, aAvatar);
+                    if (globalListener != null) globalListener.onFriendRequestAccepted(aId, aName, aAvatar);
                 }
             });
             socket.connect();
@@ -319,10 +357,37 @@ public class GameSocketClient {
         } catch (Exception ignored) {}
     }
 
+    /**
+     * Tell the backend that the current user accepted a friend request from
+     * {@code originalSenderUid} so the sender's UI updates to "Friends".
+     */
+    public void notifyFriendRequestAccepted(String originalSenderUid) {
+        if (originalSenderUid == null || originalSenderUid.isEmpty()) return;
+        if (!isConnected()) connect();
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("targetUserId", originalSenderUid);
+            emit("friendRequestAccepted", obj);
+        } catch (Exception ignored) {}
+    }
+
     public void sendRoomInvite(String targetUserId) {
+        sendRoomInvite(targetUserId, null, null, null);
+    }
+
+    public void sendRoomInvite(String targetUserId, @Nullable String roomId, @Nullable String roomCode, @Nullable String mode) {
         if (targetUserId == null || targetUserId.isEmpty()) return;
         if (!isConnected()) connect();
-        emit("sendRoomInvite", targetUserId);
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("targetUserId", targetUserId);
+            if (roomId != null && !roomId.isEmpty()) obj.put("roomId", roomId);
+            if (roomCode != null && !roomCode.isEmpty()) obj.put("code", roomCode);
+            if (mode != null && !mode.isEmpty()) obj.put("mode", mode);
+            emit("sendRoomInvite", obj);
+        } catch (Exception ignored) {
+            emit("sendRoomInvite", targetUserId);
+        }
     }
 
     public void disconnect() {
@@ -443,24 +508,57 @@ public class GameSocketClient {
         emit("passTurn");
     }
 
+    public String getResolvedUid() {
+        String uid = preferences != null ? preferences.getUserId() : null;
+        if (uid == null || uid.isEmpty() || "offline".equalsIgnoreCase(uid)) {
+            com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (fUser != null) {
+                uid = fUser.getUid();
+                if (preferences != null) preferences.saveUserId(uid);
+            }
+        }
+        return uid != null ? uid : "";
+    }
+
+    public String getResolvedUsername() {
+        String name = preferences != null ? preferences.getUsername() : null;
+        if (name == null || name.isEmpty() || "Player".equals(name)) {
+            com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (fUser != null && fUser.getDisplayName() != null && !fUser.getDisplayName().isEmpty()) {
+                name = fUser.getDisplayName();
+                if (preferences != null) preferences.saveUsername(name);
+            }
+        }
+        return name != null && !name.isEmpty() ? name : "Player";
+    }
+
+    public String getResolvedAvatar() {
+        String avatar = preferences != null ? preferences.getAvatarFileName() : null;
+        return avatar != null && !avatar.isEmpty() ? avatar : "avatar1.png";
+    }
+
     private Map<String, String> buildAuth() {
         Map<String, String> auth = new java.util.HashMap<>();
         String token = preferences != null ? preferences.getToken() : null;
-        String uid = preferences != null ? preferences.getUserId() : null;
-        String name = preferences != null ? preferences.getUsername() : null;
-        if (token != null) auth.put("token", token);
-        if (uid != null) auth.put("uid", uid);
-        if (name != null) auth.put("name", name);
+        String uid = getResolvedUid();
+        String name = getResolvedUsername();
+        String avatar = getResolvedAvatar();
+        if (token != null && !token.isEmpty()) auth.put("token", token);
+        if (uid != null && !uid.isEmpty()) auth.put("uid", uid);
+        if (name != null && !name.isEmpty()) auth.put("name", name);
+        if (avatar != null && !avatar.isEmpty()) auth.put("avatarFileName", avatar);
         return auth;
     }
 
     private String buildQuery() {
         try {
-            String uid = preferences != null ? preferences.getUserId() : "";
-            String name = preferences != null ? preferences.getUsername() : "Player";
+            String uid = getResolvedUid();
+            String name = getResolvedUsername();
+            String avatar = getResolvedAvatar();
             String encUid = java.net.URLEncoder.encode(uid != null ? uid : "", "UTF-8");
             String encName = java.net.URLEncoder.encode(name != null ? name : "Player", "UTF-8");
-            return "uid=" + encUid + "&name=" + encName;
+            String encAvatar = java.net.URLEncoder.encode(avatar != null ? avatar : "avatar1.png", "UTF-8");
+            return "uid=" + encUid + "&name=" + encName + "&avatarFileName=" + encAvatar;
         } catch (Exception e) {
             return "name=Player";
         }
@@ -470,8 +568,7 @@ public class GameSocketClient {
         if (socket == null || !socket.connected()) {
             Log.w(TAG, "socket not connected for " + event + "; attempting auto-reconnect");
             try {
-                if (socket != null) socket.connect();
-                else connect();
+                connect();
             } catch (Exception ignored) {}
             return;
         }

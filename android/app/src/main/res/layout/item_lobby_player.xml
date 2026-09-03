@@ -15,14 +15,28 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <!-- Avatar Image View -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/imgLobbyPlayerAvatar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:scaleType="centerCrop"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
-            android:background="#334155" />
+        <!-- Avatar Frame Container -->
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/imgLobbyPlayerAvatar"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_gravity="center"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
+                android:background="#334155" />
+
+            <ImageView
+                android:id="@+id/ivLobbyPlayerFrame"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/frame_royal_crown" />
+        </FrameLayout>
 
         <!-- Player Details -->
         <LinearLayout

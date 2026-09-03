@@ -45,6 +45,7 @@ import glab.guesscard.GuessCardApp;
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
 import glab.guesscard.activities.GameActivity;
+import glab.guesscard.activities.LobbyActivity;
 import glab.guesscard.activities.WinnerActivity;
 import glab.guesscard.di.GameContainer;
 import glab.guesscard.game.GuessTheCardEngine;
@@ -242,17 +243,58 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         }
     }
 
+    private boolean isBluetoothMesh = false;
+
     private void initGameMode() {
         Intent intent = getActivity() != null ? getActivity().getIntent() : null;
         String modeStr = intent != null ? intent.getStringExtra(GameActivity.EXTRA_MODE) : null;
         currentRoomId = intent != null ? intent.getStringExtra(GameActivity.EXTRA_ROOM_ID) : null;
         String initialAnswererUid = intent != null ? intent.getStringExtra(GameActivity.EXTRA_ANSWERER_UID) : null;
+        isBluetoothMesh = intent != null && intent.getBooleanExtra(LobbyActivity.EXTRA_IS_BLUETOOTH, false);
 
         if (modeStr != null) {
             try { currentGameMode = GameMode.valueOf(modeStr); } catch (Exception ignored) {}
         }
 
         View voiceContainer = getView() != null ? getView().findViewById(R.id.voiceControlsContainer) : null;
+
+        if (isBluetoothMesh) {
+            // ── BLUETOOTH MESH OFFLINE MULTIPLAYER MODE ──
+            isOfflineMode = false;
+            if (voiceContainer != null) voiceContainer.setVisibility(View.GONE);
+            if (btnVoiceQuestion != null) btnVoiceQuestion.setVisibility(View.GONE);
+
+            glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = GuessCardApp.from(requireContext()).getBluetoothMeshManager();
+            bmMgr.setGameListener(this);
+
+            RoomInfo r = bmMgr.getCurrentRoomInfo();
+            if (r != null) {
+                roomPlayersList = r.players != null ? r.players : new ArrayList<>();
+                if (r.card != null && !r.card.isEmpty()) currentSecretCard = r.card;
+                if (r.currentTurnPlayerId != null && !r.currentTurnPlayerId.isEmpty()) currentAnswererUid = r.currentTurnPlayerId;
+            }
+
+            if (currentSecretCard == null || currentSecretCard.isEmpty()) {
+                currentSecretCard = Card.getRandomCardForMode(currentGameMode).word;
+            }
+
+            String myUid = preferences != null ? preferences.getUserId() : "";
+            if (currentAnswererUid == null || currentAnswererUid.isEmpty()) {
+                currentAnswererUid = initialAnswererUid != null ? initialAnswererUid : myUid;
+            }
+            isGuesser = !(myUid != null && myUid.equals(currentAnswererUid));
+
+            renderQuickQuestionChips(currentGameMode);
+            updateRoleControls();
+
+            if (gameCardView != null && currentSecretCard != null && !currentSecretCard.isEmpty()) {
+                gameCardView.setCardData(currentSecretCard, currentGameMode.name(), isGuesser);
+            }
+
+            renderPlayerAvatarsFromList(roomPlayersList, currentAnswererUid);
+            startCountdownTimer(60000L);
+            return;
+        }
 
         if (currentRoomId == null || currentRoomId.isEmpty() || "offline".equalsIgnoreCase(currentRoomId)) {
             // ── OFFLINE PRACTICE MODE ──
@@ -674,7 +716,7 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
 
             // Friendship check
             firebaseManager.checkFriendshipStatus(myUid, target.userId, status -> {
-                if (!isAdded()) return;
+                if (!isAdded() || getActivity() == null) return;
                 requireActivity().runOnUiThread(() -> {
                     if (status == FirebaseManager.FriendshipStatus.FRIENDS) {
                         btnAddFriend.setText("Friends ✓");
@@ -682,19 +724,47 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
                         btnAddFriend.setButtonColor(Color.parseColor("#1E293B"));
                         btnAddFriend.setTextColor(Color.parseColor("#38BDF8"));
                     } else if (status == FirebaseManager.FriendshipStatus.REQUEST_SENT) {
-                        btnAddFriend.setText("Request Sent");
+                        btnAddFriend.setText("Requested ⏳");
                         btnAddFriend.setEnabled(false);
                         btnAddFriend.setButtonColor(Color.parseColor("#1E293B"));
-                        btnAddFriend.setTextColor(Color.parseColor("#94A3B8"));
+                        btnAddFriend.setTextColor(Color.parseColor("#F59E0B"));
+                    } else if (status == FirebaseManager.FriendshipStatus.REQUEST_RECEIVED) {
+                        btnAddFriend.setText("Accept 🤝");
+                        btnAddFriend.setEnabled(true);
+                        btnAddFriend.setButtonColor(Color.parseColor("#10B981"));
+                        btnAddFriend.setTextColor(Color.WHITE);
+                        btnAddFriend.setOnClickListener(v -> {
+                            glab.guesscard.firebase.FriendshipManager.acceptFriendRequest(requireContext(), myUid, target.userId, target.username, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    btnAddFriend.setText("Friends ✓");
+                                    btnAddFriend.setEnabled(false);
+                                    btnAddFriend.setButtonColor(Color.parseColor("#1E293B"));
+                                    btnAddFriend.setTextColor(Color.parseColor("#38BDF8"));
+                                }
+
+                                @Override
+                                public void onError(String message) {}
+                            });
+                        });
                     } else {
                         btnAddFriend.setText("+ Add Friend");
                         btnAddFriend.setEnabled(true);
                         btnAddFriend.setButtonColor(Color.parseColor("#2563EB"));
+                        btnAddFriend.setTextColor(Color.WHITE);
                         btnAddFriend.setOnClickListener(v -> {
-                            firebaseManager.sendFriendRequest(myUid, target.userId);
-                            btnAddFriend.setText("Request Sent");
-                            btnAddFriend.setEnabled(false);
-                            Toast.makeText(requireContext(), "Friend request sent to " + target.username, Toast.LENGTH_SHORT).show();
+                            glab.guesscard.firebase.FriendshipManager.sendFriendRequest(requireContext(), myUid, target.userId, target.username, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    btnAddFriend.setText("Requested ⏳");
+                                    btnAddFriend.setEnabled(false);
+                                    btnAddFriend.setButtonColor(Color.parseColor("#1E293B"));
+                                    btnAddFriend.setTextColor(Color.parseColor("#F59E0B"));
+                                }
+
+                                @Override
+                                public void onError(String message) {}
+                            });
                         });
                     }
                 });
@@ -904,6 +974,19 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
             return;
         }
 
+        if (isBluetoothMesh) {
+            String myName = preferences != null ? preferences.getUsername() : "Guesser";
+            glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = GuessCardApp.from(requireContext()).getBluetoothMeshManager();
+            bmMgr.askQuestion(cleanQ, myName);
+
+            int updatedCount = Math.max(0, remainingQuestionsCount - 1);
+            remainingQuestionsCount = updatedCount;
+            if (tvQuestionsLeft != null) tvQuestionsLeft.setText(String.valueOf(updatedCount));
+
+            onQuestionAsked(cleanQ, myName);
+            return;
+        }
+
         if (currentRoomId != null) {
             String myUid = preferences != null ? preferences.getUserId() : "";
             String myName = preferences != null ? preferences.getUsername() : "Guesser";
@@ -981,6 +1064,11 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         HapticsHelper.vibrateClick(btnGuess);
         if (isOfflineMode && offlineEngine != null) {
             offlineEngine.answerQuestionLocally(answer);
+        } else if (isBluetoothMesh) {
+            String myName = preferences != null ? preferences.getUsername() : "Answerer";
+            glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = GuessCardApp.from(requireContext()).getBluetoothMeshManager();
+            bmMgr.answerQuestion("", answer, myName);
+            onAnswerGiven("", answer, myName);
         } else if (currentRoomId != null) {
             String myUid = preferences != null ? preferences.getUserId() : "";
             String myName = preferences != null ? preferences.getUsername() : "Answerer";
@@ -1019,6 +1107,17 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
 
         if (isOfflineMode && offlineEngine != null) {
             offlineEngine.submitGuess(cleanGuess);
+            return;
+        }
+
+        if (isBluetoothMesh) {
+            String myName = preferences != null ? preferences.getUsername() : "Player";
+            boolean isCorrect = currentSecretCard != null && !currentSecretCard.isEmpty() &&
+                    cleanGuess.equalsIgnoreCase(currentSecretCard.trim());
+            int pts = isCorrect ? (100 + remainingQuestionsCount) : 0;
+            glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = GuessCardApp.from(requireContext()).getBluetoothMeshManager();
+            bmMgr.submitGuess(cleanGuess, myName, isCorrect, pts, currentSecretCard);
+            onGuessResult(myName, cleanGuess, isCorrect, pts, currentSecretCard);
             return;
         }
 
@@ -1095,7 +1194,9 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         int nextRound = currentRoundNumber + 1;
 
         if (nextRound > totalRoundsCount) {
-            firebaseManager.getRoomRef(currentRoomId).child("status").setValue("FINISHED");
+            if (!isBluetoothMesh) {
+                firebaseManager.getRoomRef(currentRoomId).child("status").setValue("FINISHED");
+            }
             showGameFinished();
             return;
         }
@@ -1115,6 +1216,19 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
         }
 
         Card nextCard = Card.getRandomCardForMode(currentGameMode);
+
+        if (isBluetoothMesh) {
+            currentSecretCard = nextCard.word;
+            currentAnswererUid = nextAnswererUid;
+            currentRoundNumber = nextRound;
+            remainingQuestionsCount = 20;
+            String myUid = preferences != null ? preferences.getUserId() : "";
+            isGuesser = !(myUid != null && myUid.equals(currentAnswererUid));
+            updateRoleControls();
+            if (gameCardView != null) gameCardView.setCardData(currentSecretCard, currentGameMode.name(), isGuesser);
+            startCountdownTimer(60000L);
+            return;
+        }
 
         Map<String, Object> nextRoundData = new HashMap<>();
         nextRoundData.put("secretCard", nextCard.word);
@@ -1152,6 +1266,7 @@ public class GameFragment extends Fragment implements GameSocketListener, GuessT
             intent.putExtra("finalScore", topScore);
             intent.putExtra("roomId", currentRoomId);
             intent.putExtra("mode", currentGameMode.name());
+            intent.putExtra("extra_is_bluetooth", isBluetoothMesh);
             startActivity(intent);
             activity.finish();
         });

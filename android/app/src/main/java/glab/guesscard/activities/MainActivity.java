@@ -40,7 +40,8 @@ public class MainActivity extends BaseActivity {
 
     private void setupProfileBadgeListener(BottomNavigationView bottomNav) {
         if (bottomNav == null || prefs() == null) return;
-        String uid = prefs().getUserId();
+        com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        String uid = fUser != null ? fUser.getUid() : prefs().getUserId();
         if (uid == null || uid.isEmpty()) return;
 
         if (container() != null && container().getFirebaseManager() != null) {

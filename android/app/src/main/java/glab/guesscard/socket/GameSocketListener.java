@@ -28,5 +28,7 @@ public interface GameSocketListener {
     default void onTurnStarted(String nextTurnPlayerId, int currentRound) {}
     default void onRoomInviteReceived(String roomId, String code, String senderId, String senderName, String senderAvatar, String mode) {}
     default void onFriendRequestReceived(String senderId, String senderName, String senderAvatar) {}
+    /** Called when someone accepted your friend request (keys are the acceptor). */
+    default void onFriendRequestAccepted(String acceptorId, String acceptorName, String acceptorAvatar) {}
 }
 

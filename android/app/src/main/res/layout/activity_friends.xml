@@ -6,7 +6,7 @@
     android:background="@color/bg_dark"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <!-- HEADER -->
     <LinearLayout
@@ -17,20 +17,63 @@
         android:layout_marginBottom="16dp">
 
         <TextView
+            android:id="@+id/tvFriendsTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="FRIENDS MANAGER 👥"
+            android:text="FRIENDS 👥"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             android:textStyle="bold" />
 
+        <!-- Notification Bell Button with Live Badge -->
+        <FrameLayout
+            android:id="@+id/flNotificationContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <glab.guesscard.ModernFButton
+                android:id="@+id/btnFriendRequestsNotification"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:mfb_iconSrc="@drawable/users_plus"
+                app:mfb_iconGravity="textStart"
+                app:mfb_iconPadding="0dp"
+                app:mfb_iconTint="#F59E0B"
+                app:mfb_buttonColor="#1E293B"
+                app:mfb_cornerRadius="12dp" />
+
+            <TextView
+                android:id="@+id/tvNotificationBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="18dp"
+                android:minHeight="18dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_notification_dot"
+                android:backgroundTint="#EF4444"
+                android:gravity="center"
+                android:paddingHorizontal="4dp"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
+
         <glab.guesscard.ModernFButton
             android:id="@+id/btnCloseFriends"
-            android:layout_width="72dp"
-            android:layout_height="36dp"
+            android:layout_width="68dp"
+            android:layout_height="40dp"
             android:text="Close"
-            android:textSize="11sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <!-- SEARCH BAR -->
@@ -38,6 +81,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginBottom="16dp">
 
         <EditText
@@ -45,13 +89,16 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:background="#1E293B"
-            android:hint="Search by UID or Username..."
+            android:background="@drawable/shape_glass_card"
+            android:hint="Search by UID or username..."
             android:textColorHint="#64748B"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:textColor="#FFFFFF"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:inputType="text"
+            android:imeOptions="actionSearch" />
 
         <glab.guesscard.ModernFButton
             android:id="@+id/btnSearch"
@@ -66,12 +113,13 @@
         android:id="@+id/tvSearchResultsHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Search Results"
+        android:text="SEARCH RESULTS"
         android:textColor="#38BDF8"
         android:textSize="12sp"
         android:textStyle="bold"
+        android:letterSpacing="0.08"
         android:visibility="gone"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="8dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSearchResults"
@@ -81,50 +129,30 @@
         android:visibility="gone"
         android:layout_marginBottom="16dp" />
 
-    <!-- MAIN SCROLLABLE SECTION (Requests + Friends List) -->
+    <!-- MAIN FRIENDS SECTION -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollFriendsContent"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- INCOMING REQUESTS SECTION -->
-            <TextView
-                android:id="@+id/tvIncomingRequestsHeader"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="PENDING FRIEND REQUESTS"
-                android:textColor="#10B981"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textAllCaps="true"
-                android:letterSpacing="0.1"
-                android:visibility="gone"
-                android:layout_marginBottom="6dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvIncomingRequests"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone"
-                android:layout_marginBottom="16dp" />
-
             <!-- MY FRIENDS LIST SECTION -->
             <TextView
                 android:id="@+id/tvMyFriendsHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="MY FRIENDS LIST"
+                android:text="MY FRIENDS"
                 android:textColor="#94A3B8"
                 android:textSize="12sp"
+                android:textStyle="bold"
                 android:textAllCaps="true"
-                android:letterSpacing="0.1"
+                android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp" />
 
             <TextView
@@ -132,11 +160,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="#1E293B"
-                android:padding="20dp"
-                android:text="No friends added yet. Use the search bar above to find and add friends."
+                android:padding="28dp"
+                android:text="No friends added yet.\nSearch players by username or UID above to add friends!"
                 android:textColor="#94A3B8"
                 android:textSize="13sp"
-                android:gravity="center" />
+                android:gravity="center"
+                android:lineSpacingExtra="4dp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvFriendsList"

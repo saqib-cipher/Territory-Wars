@@ -28,6 +28,7 @@ import java.util.Map;
 
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
+import glab.guesscard.models.RoomInfo;
 import glab.guesscard.utils.AvatarManager;
 
 /**
@@ -129,6 +130,29 @@ public class WinnerActivity extends BaseActivity {
     }
 
     private void loadLiveRoomStandings(String roomId, String winnerName, int topScore, String mode) {
+        boolean isBluetooth = getIntent().getBooleanExtra("extra_is_bluetooth", false);
+        if (isBluetooth) {
+            List<StandingsEntry> standings = new ArrayList<>();
+            glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = container().getBluetoothMeshManager();
+            RoomInfo r = bmMgr.getCurrentRoomInfo();
+            if (r != null && r.players != null && !r.players.isEmpty()) {
+                for (RoomInfo.LobbyPlayer p : r.players) {
+                    standings.add(new StandingsEntry(
+                            p.userId != null ? p.userId : "peer",
+                            p.username != null ? p.username : "Player",
+                            p.score > 0 ? p.score : topScore,
+                            5,
+                            p.avatarFileName
+                    ));
+                }
+            } else {
+                standings.add(new StandingsEntry("self", winnerName, topScore, 5, "avatar_01.png"));
+            }
+            Collections.sort(standings, (e1, e2) -> Integer.compare(e2.finalScore, e1.finalScore));
+            populateLeaderboardRecyclerView(standings, winnerName, mode);
+            return;
+        }
+
         if (roomId == null || roomId.isEmpty()) {
             List<StandingsEntry> fallback = new ArrayList<>();
             fallback.add(new StandingsEntry("self", winnerName, topScore, 5, "avatar_01.png"));
@@ -232,6 +256,17 @@ public class WinnerActivity extends BaseActivity {
     }
 
     private void handlePlayAgain(String roomId, String mode, ModernFButton button) {
+        boolean isBluetooth = getIntent().getBooleanExtra("extra_is_bluetooth", false);
+        if (isBluetooth) {
+            Intent intent = new Intent(this, LobbyActivity.class);
+            intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
+            if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
+            intent.putExtra("extra_is_bluetooth", true);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         String uid = prefs().getUserId();
         if (roomId == null || roomId.isEmpty() || uid == null) {
             Intent intent = new Intent(this, LobbyActivity.class);

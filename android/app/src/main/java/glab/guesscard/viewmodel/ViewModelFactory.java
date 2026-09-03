@@ -31,8 +31,6 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
             return (T) new LeaderboardViewModel(container);
         } else if (modelClass.isAssignableFrom(ProfileViewModel.class)) {
             return (T) new ProfileViewModel(container);
-        } else if (modelClass.isAssignableFrom(FriendsViewModel.class)) {
-            return (T) new FriendsViewModel(container);
         } else if (modelClass.isAssignableFrom(InventoryViewModel.class)) {
             return (T) new InventoryViewModel(container);
         }

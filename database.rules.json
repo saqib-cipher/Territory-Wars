@@ -3,7 +3,26 @@
     "users": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null && auth.uid == $uid"
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid",
+        "friendRequests": {
+          ".write": "auth != null"
+        },
+        "sentRequests": {
+          ".write": "auth != null"
+        },
+        "friends": {
+          ".write": "auth != null"
+        },
+        "invites": {
+          ".write": "auth != null"
+        },
+        "playedMatches": {
+          ".write": "auth != null"
+        },
+        "matchHistory": {
+          ".write": "auth != null"
+        }
       }
     },
     "leaderboard": {

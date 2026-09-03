@@ -14,10 +14,7 @@
         android:name="glab.guesscard.fragments.PlayFragment"
         android:label="@string/nav_play" />
 
-    <fragment
-        android:id="@+id/friendsFragment"
-        android:name="glab.guesscard.fragments.FriendsFragment"
-        android:label="@string/nav_friends" />
+
 
     <fragment
         android:id="@+id/leaderboardFragment"

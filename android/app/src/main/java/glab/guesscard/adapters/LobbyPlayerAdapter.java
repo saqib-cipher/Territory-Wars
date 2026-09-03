@@ -101,11 +101,34 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
                         holder.btnAddFriend.setShadowHeightDp(0f);
                     } else if (status == glab.guesscard.firebase.FirebaseManager.FriendshipStatus.REQUEST_SENT) {
                         holder.btnAddFriend.setVisibility(View.VISIBLE);
-                        holder.btnAddFriend.setText("Request Sent");
+                        holder.btnAddFriend.setText("Requested ⏳");
                         holder.btnAddFriend.setEnabled(false);
                         holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#94A3B8"));
+                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
                         holder.btnAddFriend.setShadowHeightDp(0f);
+                    } else if (status == glab.guesscard.firebase.FirebaseManager.FriendshipStatus.REQUEST_RECEIVED) {
+                        holder.btnAddFriend.setVisibility(View.VISIBLE);
+                        holder.btnAddFriend.setText("Accept 🤝");
+                        holder.btnAddFriend.setEnabled(true);
+                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#10B981"));
+                        holder.btnAddFriend.setTextColor(android.graphics.Color.WHITE);
+                        holder.btnAddFriend.setShadowHeightDp(2f);
+                        holder.btnAddFriend.setOnClickListener(v -> {
+                            if (u.userId != null && currentUid != null) {
+                                glab.guesscard.firebase.FriendshipManager.acceptFriendRequest(context, currentUid, u.userId, name, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        holder.btnAddFriend.setText("Friends ✓");
+                                        holder.btnAddFriend.setEnabled(false);
+                                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
+                                        holder.btnAddFriend.setShadowHeightDp(0f);
+                                    }
+
+                                    @Override public void onError(String message) {}
+                                });
+                            }
+                        });
                     } else {
                         holder.btnAddFriend.setVisibility(View.VISIBLE);
                         holder.btnAddFriend.setText("+ Add Friend");
@@ -115,13 +138,19 @@ public class LobbyPlayerAdapter extends RecyclerView.Adapter<LobbyPlayerAdapter.
                         holder.btnAddFriend.setShadowHeightDp(2f);
                         holder.btnAddFriend.setOnClickListener(v -> {
                             if (u.userId != null && currentUid != null) {
-                                GuessCardApp.from(context).getFirebaseManager().addFriend(currentUid, u.userId);
-                                holder.btnAddFriend.setText("Friends ✓");
-                                holder.btnAddFriend.setEnabled(false);
-                                holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
-                                holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#38BDF8"));
-                                holder.btnAddFriend.setShadowHeightDp(0f);
-                                Toast.makeText(context, "Added " + name + " to friends list", Toast.LENGTH_SHORT).show();
+                                glab.guesscard.firebase.FriendshipManager.sendFriendRequest(context, currentUid, u.userId, name, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        holder.btnAddFriend.setText("Requested ⏳");
+                                        holder.btnAddFriend.setEnabled(false);
+                                        holder.btnAddFriend.setButtonColor(android.graphics.Color.parseColor("#1E293B"));
+                                        holder.btnAddFriend.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
+                                        holder.btnAddFriend.setShadowHeightDp(0f);
+                                    }
+
+                                    @Override
+                                    public void onError(String message) {}
+                                });
                             }
                         });
                     }

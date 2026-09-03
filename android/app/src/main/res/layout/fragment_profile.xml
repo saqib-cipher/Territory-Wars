@@ -99,14 +99,29 @@
                     android:layout_marginEnd="6dp"
                     android:text="Edit Profile" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnViewFriends"
-                    style="@style/Widget.Material3.Button.TonalButton"
+                <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:text="Friends" />
+                    android:layout_marginStart="6dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnViewFriends"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Friends" />
+
+                    <View
+                        android:id="@+id/friendsDotBadge"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_notification_dot"
+                        android:visibility="gone" />
+                </FrameLayout>
 
             </LinearLayout>
 

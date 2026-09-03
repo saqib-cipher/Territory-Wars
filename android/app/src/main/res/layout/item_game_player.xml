@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/playerCardRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -11,26 +11,36 @@
     android:background="@drawable/bg_player_circle">
 
     <FrameLayout
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="center_horizontal">
 
         <!-- Turn highlight glow ring -->
         <View
             android:id="@+id/turnHighlightRing"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:background="@drawable/shape_avatar_ring"
             android:visibility="gone" />
 
         <!-- Avatar Image -->
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivPlayerAvatar"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.TerritoryWars.Avatar"
             android:src="@drawable/ic_profile" />
+
+        <!-- Royal Crown / Champion Avatar Frame Overlay -->
+        <ImageView
+            android:id="@+id/ivPlayerFrame"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:src="@drawable/frame_neon_green" />
 
         <!-- Crown Badge for Answerer / Host -->
         <ImageView
@@ -41,28 +51,22 @@
             android:src="@drawable/ic_crown"
             android:visibility="gone" />
 
-        <!-- Speaking Mic Indicator (Flickering Animation) -->
+        <!-- Speaking Mic Indicator -->
         <ImageView
             android:id="@+id/ivSpeakingMic"
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:layout_gravity="bottom|end"
-            android:background="@drawable/circle"
-            android:backgroundTint="#10B981"
-            android:padding="2dp"
-            android:src="@drawable/ic_mic"
+            android:src="@drawable/ic_hud_mic_on"
             android:visibility="gone" />
 
         <!-- Muted Badge -->
         <ImageView
             android:id="@+id/ivMuteBadge"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_gravity="bottom|start"
-            android:background="@drawable/circle"
-            android:backgroundTint="#EF4444"
-            android:padding="2dp"
-            android:src="@drawable/ic_mic_off"
+            android:src="@drawable/ic_hud_mic_off"
             android:visibility="gone" />
 
     </FrameLayout>

@@ -14,8 +14,12 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,19 +31,21 @@ import java.util.Set;
 import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
 import glab.guesscard.firebase.FirebaseManager;
+import glab.guesscard.firebase.FriendshipManager;
 import glab.guesscard.utils.AvatarManager;
 
 public class FriendsActivity extends BaseActivity {
 
     private static final long SEARCH_DEBOUNCE_MS = 350L;
+    private static final long STATUS_REFRESH_MS = 15000L;
 
     private EditText etSearch;
     private RecyclerView rvFriends;
     private RecyclerView rvSearch;
-    private RecyclerView rvIncoming;
     private TextView tvNoFriends;
     private TextView tvSearchHeader;
-    private TextView tvIncomingHeader;
+    private TextView tvMyFriendsHeader;
+    private TextView tvNotificationBadge;
     private View scrollContent;
     private FirebaseManager firebaseManager;
     private String currentUid;
@@ -49,6 +55,28 @@ public class FriendsActivity extends BaseActivity {
     private final Map<String, Boolean> onlineStatusMap = new HashMap<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
+    private Runnable statusRefreshRunnable;
+    private List<Map<String, Object>> lastFriendsList = new ArrayList<>();
+    private List<Map<String, Object>> lastSearchList = new ArrayList<>();
+    private List<Map<String, Object>> lastIncomingRequests = new ArrayList<>();
+    private boolean statusRefreshActive;
+
+    private AlertDialog incomingRequestsDialog = null;
+    private IncomingRequestsDialogAdapter dialogAdapter = null;
+
+    private com.google.firebase.database.ValueEventListener friendRequestsLiveListener;
+    private com.google.firebase.database.ValueEventListener friendsLiveListener;
+    private com.google.firebase.database.ValueEventListener sentRequestsLiveListener;
+
+    private String resolveCurrentUid() {
+        FirebaseUser fUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (fUser != null) {
+            String uid = fUser.getUid();
+            if (prefs() != null) prefs().saveUserId(uid);
+            return uid;
+        }
+        return prefs() != null ? prefs().getUserId() : null;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -56,19 +84,28 @@ public class FriendsActivity extends BaseActivity {
         setContentView(R.layout.activity_friends);
 
         firebaseManager = container().getFirebaseManager();
-        currentUid = prefs().getUserId();
+        currentUid = resolveCurrentUid();
 
         etSearch = findViewById(R.id.etSearchFriends);
         rvFriends = findViewById(R.id.rvFriendsList);
         rvSearch = findViewById(R.id.rvSearchResults);
-        rvIncoming = findViewById(R.id.rvIncomingRequests);
         tvNoFriends = findViewById(R.id.tvNoFriends);
         tvSearchHeader = findViewById(R.id.tvSearchResultsHeader);
-        tvIncomingHeader = findViewById(R.id.tvIncomingRequestsHeader);
+        tvMyFriendsHeader = findViewById(R.id.tvMyFriendsHeader);
+        tvNotificationBadge = findViewById(R.id.tvNotificationBadge);
         scrollContent = findViewById(R.id.scrollFriendsContent);
 
         ModernFButton btnClose = findViewById(R.id.btnCloseFriends);
         if (btnClose != null) btnClose.setOnClickListener(v -> finish());
+
+        View flNotification = findViewById(R.id.flNotificationContainer);
+        View btnNotification = findViewById(R.id.btnFriendRequestsNotification);
+        View.OnClickListener notifClick = v -> {
+            loadIncomingRequests();
+            showReceivedRequestsDialog();
+        };
+        if (flNotification != null) flNotification.setOnClickListener(notifClick);
+        if (btnNotification != null) btnNotification.setOnClickListener(notifClick);
 
         ModernFButton btnSearch = findViewById(R.id.btnSearch);
         if (btnSearch != null) btnSearch.setOnClickListener(v -> debounceSearch(0L));
@@ -85,30 +122,30 @@ public class FriendsActivity extends BaseActivity {
 
         if (rvFriends != null) rvFriends.setLayoutManager(new LinearLayoutManager(this));
         if (rvSearch != null) rvSearch.setLayoutManager(new LinearLayoutManager(this));
-        if (rvIncoming != null) rvIncoming.setLayoutManager(new LinearLayoutManager(this));
 
         loadIncomingRequests();
         loadFriends();
     }
 
-    private com.google.firebase.database.ValueEventListener friendRequestsLiveListener;
-    private com.google.firebase.database.ValueEventListener friendsLiveListener;
-
     @Override
     protected void onStart() {
         super.onStart();
+        currentUid = resolveCurrentUid();
         attachLiveListeners();
+        startStatusRefresh();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         detachLiveListeners();
+        stopStatusRefresh();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        currentUid = resolveCurrentUid();
         loadIncomingRequests();
         loadFriends();
     }
@@ -117,10 +154,71 @@ public class FriendsActivity extends BaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         detachLiveListeners();
+        stopStatusRefresh();
         if (searchRunnable != null) mainHandler.removeCallbacks(searchRunnable);
+        dismissRequestsDialog();
+    }
+
+    @Override
+    protected void onGlobalFriendRequestReceived(String senderId, String senderName, String senderAvatar) {
+        super.onGlobalFriendRequestReceived(senderId, senderName, senderAvatar);
+        incomingRequestUids.add(senderId);
+        loadIncomingRequests();
+        if (rvSearch != null && rvSearch.getAdapter() != null) rvSearch.getAdapter().notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onGlobalFriendRequestAccepted(String acceptorId, String acceptorName, String acceptorAvatar) {
+        super.onGlobalFriendRequestAccepted(acceptorId, acceptorName, acceptorAvatar);
+        Toast.makeText(FriendsActivity.this, acceptorName + " accepted your friend request 🤝", Toast.LENGTH_SHORT).show();
+        loadFriends();
+    }
+
+    private void startStatusRefresh() {
+        statusRefreshActive = true;
+        statusRefreshRunnable = () -> {
+            if (!statusRefreshActive) return;
+            refreshAllOnlineStatuses();
+            mainHandler.postDelayed(statusRefreshRunnable, STATUS_REFRESH_MS);
+        };
+        mainHandler.postDelayed(statusRefreshRunnable, STATUS_REFRESH_MS);
+    }
+
+    private void stopStatusRefresh() {
+        statusRefreshActive = false;
+        if (statusRefreshRunnable != null) mainHandler.removeCallbacks(statusRefreshRunnable);
+        statusRefreshRunnable = null;
+    }
+
+    private void refreshAllOnlineStatuses() {
+        List<String> uids = new ArrayList<>();
+        if (lastFriendsList != null) {
+            for (Map<String, Object> f : lastFriendsList) {
+                Object uid = f.get("uid");
+                if (uid != null) uids.add(String.valueOf(uid));
+            }
+        }
+        if (lastSearchList != null) {
+            for (Map<String, Object> s : lastSearchList) {
+                Object uid = s.get("uid");
+                if (uid != null && !uids.contains(String.valueOf(uid))) uids.add(String.valueOf(uid));
+            }
+        }
+        if (uids.isEmpty()) return;
+        if (container() != null && container().getSocketClient() != null) {
+            container().getSocketClient().checkOnlineStatus(uids, statusMap -> {
+                if (statusMap == null) return;
+                runOnUiThread(() -> {
+                    onlineStatusMap.putAll(statusMap);
+                    if (rvFriends != null && rvFriends.getAdapter() != null) rvFriends.getAdapter().notifyDataSetChanged();
+                    if (rvSearch != null && rvSearch.getAdapter() != null) rvSearch.getAdapter().notifyDataSetChanged();
+                });
+            });
+        }
     }
 
     private void attachLiveListeners() {
+        currentUid = resolveCurrentUid();
         if (currentUid == null || firebaseManager == null) return;
         detachLiveListeners();
 
@@ -143,6 +241,22 @@ public class FriendsActivity extends BaseActivity {
         };
         firebaseManager.getDatabaseRef().child("users").child(currentUid).child("friends")
                 .addValueEventListener(friendsLiveListener);
+
+        sentRequestsLiveListener = new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                sentRequestUids.clear();
+                for (com.google.firebase.database.DataSnapshot child : snapshot.getChildren()) {
+                    if (child.getKey() != null) sentRequestUids.add(child.getKey());
+                }
+                if (rvSearch != null && rvSearch.getAdapter() != null) {
+                    rvSearch.getAdapter().notifyDataSetChanged();
+                }
+            }
+            @Override public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
+        };
+        firebaseManager.getDatabaseRef().child("users").child(currentUid).child("sentRequests")
+                .addValueEventListener(sentRequestsLiveListener);
     }
 
     private void detachLiveListeners() {
@@ -157,6 +271,11 @@ public class FriendsActivity extends BaseActivity {
                     .removeEventListener(friendsLiveListener);
             friendsLiveListener = null;
         }
+        if (sentRequestsLiveListener != null) {
+            firebaseManager.getDatabaseRef().child("users").child(currentUid).child("sentRequests")
+                    .removeEventListener(sentRequestsLiveListener);
+            sentRequestsLiveListener = null;
+        }
     }
 
     private void debounceSearch(long delayMs) {
@@ -166,33 +285,91 @@ public class FriendsActivity extends BaseActivity {
     }
 
     private void loadIncomingRequests() {
+        currentUid = resolveCurrentUid();
         if (currentUid == null) return;
         firebaseManager.getIncomingFriendRequests(currentUid, list -> runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
             incomingRequestUids.clear();
-            if (list != null) {
-                for (Map<String, Object> req : list) {
-                    Object uid = req.get("uid");
-                    if (uid != null) incomingRequestUids.add(String.valueOf(uid));
+            lastIncomingRequests = list != null ? list : new ArrayList<>();
+            for (Map<String, Object> req : lastIncomingRequests) {
+                Object uid = req.get("uid");
+                if (uid != null) incomingRequestUids.add(String.valueOf(uid));
+            }
+
+            int count = lastIncomingRequests.size();
+            if (tvNotificationBadge != null) {
+                if (count > 0) {
+                    tvNotificationBadge.setVisibility(View.VISIBLE);
+                    tvNotificationBadge.setText(count > 99 ? "99+" : String.valueOf(count));
+                } else {
+                    tvNotificationBadge.setVisibility(View.GONE);
                 }
             }
 
-            if (list == null || list.isEmpty()) {
-                if (tvIncomingHeader != null) tvIncomingHeader.setVisibility(View.GONE);
-                if (rvIncoming != null) rvIncoming.setVisibility(View.GONE);
-            } else {
-                if (tvIncomingHeader != null) {
-                    tvIncomingHeader.setVisibility(View.VISIBLE);
-                    tvIncomingHeader.setText("PENDING FRIEND REQUESTS (" + list.size() + ")");
-                }
-                if (rvIncoming != null) {
-                    rvIncoming.setVisibility(View.VISIBLE);
-                    rvIncoming.setAdapter(new IncomingRequestsAdapter(list));
-                }
+            if (incomingRequestsDialog != null && incomingRequestsDialog.isShowing() && dialogAdapter != null) {
+                dialogAdapter.updateList(lastIncomingRequests);
             }
         }));
     }
 
+    private void showReceivedRequestsDialog() {
+        if (isFinishing() || isDestroyed()) return;
+        dismissRequestsDialog();
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_received_friend_requests, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvTitle = dialogView.findViewById(R.id.tvDialogTitle);
+        ModernFButton btnClose = dialogView.findViewById(R.id.btnDialogClose);
+        TextView tvEmpty = dialogView.findViewById(R.id.tvEmptyRequests);
+        RecyclerView rvDialogRequests = dialogView.findViewById(R.id.rvDialogRequests);
+
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        if (rvDialogRequests != null) {
+            rvDialogRequests.setLayoutManager(new LinearLayoutManager(this));
+            dialogAdapter = new IncomingRequestsDialogAdapter(lastIncomingRequests, dialog, tvTitle, tvEmpty, rvDialogRequests);
+            rvDialogRequests.setAdapter(dialogAdapter);
+        }
+
+        updateDialogUI(tvTitle, tvEmpty, rvDialogRequests, lastIncomingRequests.size());
+
+        incomingRequestsDialog = dialog;
+        dialog.show();
+    }
+
+    private void updateDialogUI(TextView tvTitle, TextView tvEmpty, RecyclerView rv, int count) {
+        if (tvTitle != null) {
+            tvTitle.setText(count > 0 ? "Received Requests (" + count + ") 📬" : "Received Requests 📬");
+        }
+        if (count == 0) {
+            if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+            if (rv != null) rv.setVisibility(View.GONE);
+        } else {
+            if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
+            if (rv != null) rv.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void dismissRequestsDialog() {
+        if (incomingRequestsDialog != null && incomingRequestsDialog.isShowing()) {
+            try {
+                incomingRequestsDialog.dismiss();
+            } catch (Exception ignored) {}
+        }
+        incomingRequestsDialog = null;
+        dialogAdapter = null;
+    }
+
     private void loadFriends() {
+        currentUid = resolveCurrentUid();
         if (currentUid == null) return;
         firebaseManager.getFriends(currentUid, list -> {
             friendUids.clear();
@@ -207,15 +384,16 @@ public class FriendsActivity extends BaseActivity {
                     }
                 }
             }
+            lastFriendsList = list != null ? list : new ArrayList<>();
 
             // Check live online status from socket backend
             if (container() != null && container().getSocketClient() != null && !uidsToCheck.isEmpty()) {
                 container().getSocketClient().checkOnlineStatus(uidsToCheck, statusMap -> {
                     if (statusMap != null) onlineStatusMap.putAll(statusMap);
-                    displayFriends(list);
+                    displayFriends(lastFriendsList);
                 });
             } else {
-                displayFriends(list);
+                displayFriends(lastFriendsList);
             }
         });
     }
@@ -223,6 +401,11 @@ public class FriendsActivity extends BaseActivity {
     private void displayFriends(List<Map<String, Object>> list) {
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
+            int count = list != null ? list.size() : 0;
+            if (tvMyFriendsHeader != null) {
+                tvMyFriendsHeader.setText("MY FRIENDS (" + count + ")");
+            }
+
             if (list == null || list.isEmpty()) {
                 if (tvNoFriends != null) tvNoFriends.setVisibility(View.VISIBLE);
                 if (rvFriends != null) rvFriends.setVisibility(View.GONE);
@@ -244,7 +427,6 @@ public class FriendsActivity extends BaseActivity {
             if (rvSearch != null) rvSearch.setVisibility(View.GONE);
             if (tvSearchHeader != null) tvSearchHeader.setVisibility(View.GONE);
             if (scrollContent != null) scrollContent.setVisibility(View.VISIBLE);
-            loadIncomingRequests();
             loadFriends();
             return;
         }
@@ -256,20 +438,31 @@ public class FriendsActivity extends BaseActivity {
         }
         if (rvSearch != null) rvSearch.setVisibility(View.GONE);
 
+        currentUid = resolveCurrentUid();
         if (currentUid != null) {
             firebaseManager.getSentFriendRequests(currentUid, sent -> {
                 sentRequestUids.clear();
                 if (sent != null) sentRequestUids.addAll(sent);
 
-                firebaseManager.getFriends(currentUid, friendList -> {
-                    friendUids.clear();
-                    if (friendList != null) {
-                        for (Map<String, Object> f : friendList) {
-                            Object fUid = f.get("uid");
-                            if (fUid != null) friendUids.add(String.valueOf(fUid));
+                firebaseManager.getIncomingFriendRequests(currentUid, incoming -> {
+                    incomingRequestUids.clear();
+                    if (incoming != null) {
+                        for (Map<String, Object> inReq : incoming) {
+                            Object inUid = inReq.get("uid");
+                            if (inUid != null) incomingRequestUids.add(String.valueOf(inUid));
                         }
                     }
-                    doSearchQuery(query);
+
+                    firebaseManager.getFriends(currentUid, friendList -> {
+                        friendUids.clear();
+                        if (friendList != null) {
+                            for (Map<String, Object> f : friendList) {
+                                Object fUid = f.get("uid");
+                                if (fUid != null) friendUids.add(String.valueOf(fUid));
+                            }
+                        }
+                        doSearchQuery(query);
+                    });
                 });
             });
         } else {
@@ -279,33 +472,72 @@ public class FriendsActivity extends BaseActivity {
 
     private void doSearchQuery(String query) {
         firebaseManager.searchUsers(currentUid, query, list -> runOnUiThread(() -> {
-            if (isFinishing()) return;
+            if (isFinishing() || isDestroyed()) return;
             if (list == null || list.isEmpty()) {
+                lastSearchList = new ArrayList<>();
                 if (rvSearch != null) rvSearch.setVisibility(View.GONE);
                 if (tvSearchHeader != null) {
                     tvSearchHeader.setVisibility(View.VISIBLE);
                     tvSearchHeader.setText("No users found matching: '" + query + "'");
                 }
             } else {
-                if (tvSearchHeader != null) {
-                    tvSearchHeader.setVisibility(View.VISIBLE);
-                    tvSearchHeader.setText("Search Results (" + list.size() + " found)");
+                lastSearchList = list;
+                List<String> uidsToCheck = new ArrayList<>();
+                for (Map<String, Object> u : list) {
+                    Object uid = u.get("uid");
+                    if (uid != null) uidsToCheck.add(String.valueOf(uid));
                 }
-                if (rvSearch != null) {
-                    rvSearch.setVisibility(View.VISIBLE);
-                    rvSearch.setAdapter(new FriendsAdapter(list, false));
+                if (container() != null && container().getSocketClient() != null && !uidsToCheck.isEmpty()) {
+                    container().getSocketClient().checkOnlineStatus(uidsToCheck, statusMap -> runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        if (statusMap != null) onlineStatusMap.putAll(statusMap);
+                        renderSearchResults(list, query);
+                    }));
+                } else {
+                    renderSearchResults(list, query);
                 }
             }
         }));
     }
 
-    // ── INCOMING REQUESTS ADAPTER ───────────────────────────────────────────
+    private void renderSearchResults(List<Map<String, Object>> list, String query) {
+        if (isFinishing() || isDestroyed()) return;
+        if (tvSearchHeader != null) {
+            tvSearchHeader.setVisibility(View.VISIBLE);
+            tvSearchHeader.setText("SEARCH RESULTS (" + list.size() + " found)");
+        }
+        if (rvSearch != null) {
+            rvSearch.setVisibility(View.VISIBLE);
+            rvSearch.setAdapter(new FriendsAdapter(list, false));
+        }
+    }
 
-    private class IncomingRequestsAdapter extends RecyclerView.Adapter<IncomingRequestsAdapter.VH> {
+    // ── RECEIVED REQUESTS DIALOG ADAPTER ─────────────────────────────────────
+
+    private class IncomingRequestsDialogAdapter extends RecyclerView.Adapter<IncomingRequestsDialogAdapter.VH> {
         private final List<Map<String, Object>> requests;
+        private final AlertDialog dialog;
+        private final TextView tvTitle;
+        private final TextView tvEmpty;
+        private final RecyclerView rv;
 
-        IncomingRequestsAdapter(List<Map<String, Object>> requests) {
-            this.requests = requests;
+        IncomingRequestsDialogAdapter(List<Map<String, Object>> requests,
+                                     AlertDialog dialog,
+                                     TextView tvTitle,
+                                     TextView tvEmpty,
+                                     RecyclerView rv) {
+            this.requests = new ArrayList<>(requests);
+            this.dialog = dialog;
+            this.tvTitle = tvTitle;
+            this.tvEmpty = tvEmpty;
+            this.rv = rv;
+        }
+
+        void updateList(List<Map<String, Object>> newList) {
+            requests.clear();
+            if (newList != null) requests.addAll(newList);
+            notifyDataSetChanged();
+            updateDialogUI(tvTitle, tvEmpty, rv, requests.size());
         }
 
         @NonNull
@@ -319,7 +551,7 @@ public class FriendsActivity extends BaseActivity {
         public void onBindViewHolder(@NonNull VH holder, int position) {
             Map<String, Object> item = requests.get(position);
             String senderUid = String.valueOf(item.getOrDefault("uid", ""));
-            String name = String.valueOf(item.getOrDefault("username", item.getOrDefault("displayName", "Player")));
+            String name = String.valueOf(item.getOrDefault("displayName", item.getOrDefault("username", "Player")));
             String avatar = String.valueOf(item.getOrDefault("avatarFileName", "avatar1.png"));
 
             holder.tvName.setText(name);
@@ -328,21 +560,39 @@ public class FriendsActivity extends BaseActivity {
 
             holder.btnAccept.setOnClickListener(v -> {
                 if (currentUid != null && !senderUid.isEmpty()) {
-                    firebaseManager.addFriend(currentUid, senderUid);
-                    friendUids.add(senderUid);
-                    incomingRequestUids.remove(senderUid);
-                    Toast.makeText(FriendsActivity.this, "Accepted friend request from " + name + " 🤝", Toast.LENGTH_SHORT).show();
-                    loadIncomingRequests();
-                    loadFriends();
+                    FriendshipManager.acceptFriendRequest(FriendsActivity.this, currentUid, senderUid, name, new FriendshipManager.FriendshipActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            friendUids.add(senderUid);
+                            incomingRequestUids.remove(senderUid);
+                            requests.remove(holder.getAdapterPosition());
+                            notifyDataSetChanged();
+                            updateDialogUI(tvTitle, tvEmpty, rv, requests.size());
+                            loadIncomingRequests();
+                            loadFriends();
+                        }
+
+                        @Override
+                        public void onError(String message) {}
+                    });
                 }
             });
 
             holder.btnDecline.setOnClickListener(v -> {
                 if (currentUid != null && !senderUid.isEmpty()) {
-                    firebaseManager.declineFriendRequest(currentUid, senderUid);
-                    incomingRequestUids.remove(senderUid);
-                    Toast.makeText(FriendsActivity.this, "Declined request", Toast.LENGTH_SHORT).show();
-                    loadIncomingRequests();
+                    FriendshipManager.declineFriendRequest(FriendsActivity.this, currentUid, senderUid, new FriendshipManager.FriendshipActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            incomingRequestUids.remove(senderUid);
+                            requests.remove(holder.getAdapterPosition());
+                            notifyDataSetChanged();
+                            updateDialogUI(tvTitle, tvEmpty, rv, requests.size());
+                            loadIncomingRequests();
+                        }
+
+                        @Override
+                        public void onError(String message) {}
+                    });
                 }
             });
 
@@ -397,19 +647,38 @@ public class FriendsActivity extends BaseActivity {
             Map<String, Object> item = items.get(position);
             String friendUid = String.valueOf(item.getOrDefault("uid", ""));
             String name = String.valueOf(item.getOrDefault("displayName", item.getOrDefault("username", "Player")));
+            String avatar = String.valueOf(item.getOrDefault("avatarFileName", "avatar1.png"));
 
-            // Check backend online status
+            if (holder.ivAvatar != null) {
+                AvatarManager.getInstance().loadAvatarIntoImageView(FriendsActivity.this, holder.ivAvatar, avatar);
+            }
+
+            // Online & Last Seen status formatting
             boolean isOnline = Boolean.TRUE.equals(onlineStatusMap.get(friendUid));
-            String statusText = isOnline ? "🟢 Online" : "⚪ Offline";
+            if (!isOnline && item.get("isOnline") != null) {
+                isOnline = Boolean.TRUE.equals(item.get("isOnline"));
+            }
+            Long lastSeenTs = null;
+            Object lsObj = item.get("lastSeen");
+            if (lsObj instanceof Long) lastSeenTs = (Long) lsObj;
 
+            String statusFormatted = FirebaseManager.formatLastSeen(isOnline, lastSeenTs);
             holder.tvName.setText(name);
-            holder.tvStatus.setText("UID: " + friendUid + " • " + statusText);
+            holder.tvStatus.setText(statusFormatted);
 
+            if (holder.vOnlineDot != null) {
+                holder.vOnlineDot.setBackgroundTintList(ColorStateList.valueOf(
+                        isOnline ? Color.parseColor("#10B981") : Color.parseColor("#64748B")));
+            }
+
+            boolean isSelf = currentUid != null && currentUid.equals(friendUid);
             boolean isFriend = currentUid != null && friendUids.contains(friendUid);
             boolean isSentRequest = currentUid != null && sentRequestUids.contains(friendUid);
             boolean isIncoming = currentUid != null && incomingRequestUids.contains(friendUid);
 
-            if (isMyFriendsList) {
+            if (isSelf) {
+                holder.btnAction.setVisibility(View.GONE);
+            } else if (isMyFriendsList) {
                 holder.btnAction.setVisibility(View.VISIBLE);
                 holder.btnAction.setText("Remove");
                 holder.btnAction.setEnabled(true);
@@ -417,10 +686,15 @@ public class FriendsActivity extends BaseActivity {
                 holder.btnAction.setTextColor(Color.WHITE);
                 holder.btnAction.setOnClickListener(v -> {
                     if (currentUid != null && !friendUid.isEmpty()) {
-                        firebaseManager.removeFriend(currentUid, friendUid);
-                        friendUids.remove(friendUid);
-                        Toast.makeText(FriendsActivity.this, "Removed friend: " + name, Toast.LENGTH_SHORT).show();
-                        loadFriends();
+                        FriendshipManager.removeFriend(FriendsActivity.this, currentUid, friendUid, name, new FriendshipManager.FriendshipActionCallback() {
+                            @Override
+                            public void onSuccess() {
+                                friendUids.remove(friendUid);
+                                loadFriends();
+                            }
+
+                            @Override public void onError(String message) {}
+                        });
                     }
                 });
             } else if (isFriend) {
@@ -429,12 +703,6 @@ public class FriendsActivity extends BaseActivity {
                 holder.btnAction.setEnabled(false);
                 holder.btnAction.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#334155")));
                 holder.btnAction.setTextColor(Color.parseColor("#94A3B8"));
-            } else if (isSentRequest) {
-                holder.btnAction.setVisibility(View.VISIBLE);
-                holder.btnAction.setText("Requested ⏳");
-                holder.btnAction.setEnabled(false);
-                holder.btnAction.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1E293B")));
-                holder.btnAction.setTextColor(Color.parseColor("#F59E0B"));
             } else if (isIncoming) {
                 holder.btnAction.setVisibility(View.VISIBLE);
                 holder.btnAction.setText("Accept 🤝");
@@ -443,15 +711,26 @@ public class FriendsActivity extends BaseActivity {
                 holder.btnAction.setTextColor(Color.WHITE);
                 holder.btnAction.setOnClickListener(v -> {
                     if (currentUid != null && !friendUid.isEmpty()) {
-                        firebaseManager.addFriend(currentUid, friendUid);
-                        friendUids.add(friendUid);
-                        incomingRequestUids.remove(friendUid);
-                        Toast.makeText(FriendsActivity.this, "Accepted friend request from " + name + " 🤝", Toast.LENGTH_SHORT).show();
-                        loadIncomingRequests();
-                        loadFriends();
-                        notifyItemChanged(holder.getAdapterPosition());
+                        FriendshipManager.acceptFriendRequest(FriendsActivity.this, currentUid, friendUid, name, new FriendshipManager.FriendshipActionCallback() {
+                            @Override
+                            public void onSuccess() {
+                                friendUids.add(friendUid);
+                                incomingRequestUids.remove(friendUid);
+                                loadIncomingRequests();
+                                loadFriends();
+                                notifyItemChanged(holder.getAdapterPosition());
+                            }
+
+                            @Override public void onError(String message) {}
+                        });
                     }
                 });
+            } else if (isSentRequest) {
+                holder.btnAction.setVisibility(View.VISIBLE);
+                holder.btnAction.setText("Requested ⏳");
+                holder.btnAction.setEnabled(false);
+                holder.btnAction.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1E293B")));
+                holder.btnAction.setTextColor(Color.parseColor("#F59E0B"));
             } else {
                 holder.btnAction.setVisibility(View.VISIBLE);
                 holder.btnAction.setText("+ Add");
@@ -460,16 +739,18 @@ public class FriendsActivity extends BaseActivity {
                 holder.btnAction.setTextColor(Color.WHITE);
                 holder.btnAction.setOnClickListener(v -> {
                     if (currentUid != null && !friendUid.isEmpty()) {
-                        firebaseManager.sendFriendRequest(currentUid, friendUid);
-                        sentRequestUids.add(friendUid);
-                        if (container() != null && container().getSocketClient() != null) {
-                            container().getSocketClient().sendFriendRequest(friendUid);
-                        }
-                        Toast.makeText(FriendsActivity.this, "Friend request sent to " + name + " ✉️", Toast.LENGTH_SHORT).show();
-                        holder.btnAction.setText("Requested ⏳");
-                        holder.btnAction.setEnabled(false);
-                        holder.btnAction.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1E293B")));
-                        holder.btnAction.setTextColor(Color.parseColor("#F59E0B"));
+                        FriendshipManager.sendFriendRequest(FriendsActivity.this, currentUid, friendUid, name, new FriendshipManager.FriendshipActionCallback() {
+                            @Override
+                            public void onSuccess() {
+                                sentRequestUids.add(friendUid);
+                                holder.btnAction.setText("Requested ⏳");
+                                holder.btnAction.setEnabled(false);
+                                holder.btnAction.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1E293B")));
+                                holder.btnAction.setTextColor(Color.parseColor("#F59E0B"));
+                            }
+
+                            @Override public void onError(String message) {}
+                        });
                     }
                 });
             }
@@ -487,11 +768,15 @@ public class FriendsActivity extends BaseActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
+            com.google.android.material.imageview.ShapeableImageView ivAvatar;
+            View vOnlineDot;
             TextView tvName, tvStatus;
             com.google.android.material.button.MaterialButton btnAction;
 
             ViewHolder(View itemView) {
                 super(itemView);
+                ivAvatar = itemView.findViewById(R.id.friendAvatar);
+                vOnlineDot = itemView.findViewById(R.id.friendOnlineDot);
                 tvName = itemView.findViewById(R.id.friendName);
                 tvStatus = itemView.findViewById(R.id.friendStatus);
                 btnAction = itemView.findViewById(R.id.friendAction);

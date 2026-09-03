@@ -22,6 +22,7 @@ public class GameContainer {
     private final GameSocketClient socketClient;
     private final AdManager adManager;
     private final glab.guesscard.audio.GameAudio audio;
+    private final glab.guesscard.bluetooth.BluetoothMeshManager bluetoothMeshManager;
 
     public GameContainer(Context context) {
         Context appCtx = context.getApplicationContext();
@@ -31,6 +32,7 @@ public class GameContainer {
         this.socketClient = new GameSocketClient(preferences);
         this.adManager = new AdManager(appCtx);
         this.audio = new glab.guesscard.audio.GameAudio(appCtx);
+        this.bluetoothMeshManager = new glab.guesscard.bluetooth.BluetoothMeshManager(appCtx, this.preferences);
     }
 
     public static synchronized GameContainer getInstance(Context context) {
@@ -46,4 +48,5 @@ public class GameContainer {
     public GameSocketClient getSocketClient() { return socketClient; }
     public AdManager getAdManager() { return adManager; }
     public glab.guesscard.audio.GameAudio getAudio() { return audio; }
+    public glab.guesscard.bluetooth.BluetoothMeshManager getBluetoothMeshManager() { return bluetoothMeshManager; }
 }

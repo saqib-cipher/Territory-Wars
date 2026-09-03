@@ -136,26 +136,42 @@ function handleConnection(io, socket, rooms, userSocketMap) {
     });
 
     // ---- Friend Invites & Requests ----
-    socket.on('sendRoomInvite', (targetUserId) => {
-      const room = rooms.findById(socket.data.roomId);
-      if (!room) return;
+    socket.on('sendRoomInvite', (payload) => {
+      let targetUserId = null;
+      let roomId = null;
+      let code = null;
+      let mode = 'ANIMALS';
+
+      if (typeof payload === 'string') {
+        targetUserId = payload;
+      } else if (payload && typeof payload === 'object') {
+        targetUserId = payload.targetUserId || payload.friendUid || payload.targetUid;
+        roomId = payload.roomId;
+        code = payload.code || payload.roomCode;
+        mode = payload.mode || 'ANIMALS';
+      }
+
+      const room = (roomId && rooms.findById(roomId)) || rooms.findById(socket.data.roomId);
+      if (!targetUserId) return;
       const targetSocketId = userSocketMap.get(targetUserId);
+      console.log(`[INVITE] sendRoomInvite from ${user.id} (${user.username}) to ${targetUserId}, targetSocketId=${targetSocketId}, room=${room ? room.roomId : roomId}`);
       if (targetSocketId) {
         io.to(targetSocketId).emit('roomInvitation', {
           senderId: user.id,
           senderName: user.username,
           senderAvatar: user.avatarFileName || 'avatar1.png',
-          roomId: room.roomId,
-          code: room.code,
-          mode: room.mode,
+          roomId: room ? room.roomId : (roomId || ''),
+          code: room ? room.code : (code || ''),
+          mode: room ? room.mode : mode,
         });
       }
     });
 
     socket.on('sendFriendRequest', (payload) => {
-      const targetUserId = typeof payload === 'string' ? payload : (payload && payload.targetUserId);
+      const targetUserId = typeof payload === 'string' ? payload : (payload && (payload.targetUserId || payload.targetUid));
       if (!targetUserId) return;
       const targetSocketId = userSocketMap.get(targetUserId);
+      console.log(`[FRIEND] sendFriendRequest from ${user.id} (${user.username}) to ${targetUserId}, targetSocketId=${targetSocketId}`);
       if (targetSocketId) {
         io.to(targetSocketId).emit('friendRequestReceived', {
           senderId: user.id,
@@ -164,6 +180,29 @@ function handleConnection(io, socket, rooms, userSocketMap) {
           timestamp: Date.now(),
         });
       }
+    });
+
+    socket.on('friendRequestAccepted', (payload) => {
+      const targetUserId = typeof payload === 'string' ? payload : (payload && (payload.targetUserId || payload.targetUid));
+      if (!targetUserId) return;
+      const targetSocketId = userSocketMap.get(targetUserId);
+      console.log(`[FRIEND] friendRequestAccepted from ${user.id} (${user.username}) to ${targetUserId}, targetSocketId=${targetSocketId}`);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('friendRequestAccepted', {
+          acceptorId: user.id,
+          acceptorName: user.username,
+          acceptorAvatar: user.avatarFileName || 'avatar1.png',
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`[SOCKET] User ${user.username} (${user.id}) disconnected (socket: ${socket.id})`);
+      if (userSocketMap.get(user.id) === socket.id) {
+        userSocketMap.delete(user.id);
+      }
+      leaveRoom(socket, rooms, io);
     });
 
     socket.on('checkOnlineStatus', (userIds, callback) => {
@@ -564,6 +603,8 @@ function authenticate(socket, done) {
   const token = auth.token || query.token;
   const uid = auth.uid || query.uid || token;
   const name = auth.name || query.name || auth.username || 'Player';
+  const avatarFileName = auth.avatarFileName || query.avatarFileName || 'avatar_01.png';
+  const avatarId = auth.avatarId || query.avatarId || avatarFileName;
 
   if (!token && !uid) {
     socket.emit('authError', { message: 'Missing token or user ID' });
@@ -585,13 +626,13 @@ function authenticate(socket, done) {
         const u = {
           id: payload.sub || uid,
           username: payload.username || name,
-          avatarId: payload.avatarId || 'avatar_01.png',
-          avatarFileName: payload.avatarFileName || 'avatar_01.png',
+          avatarId: payload.avatarId || avatarId,
+          avatarFileName: payload.avatarFileName || avatarFileName,
         };
         socket.data.user = u;
         done(u);
       }).catch(() => {
-        const u = { id: uid || 'user_' + socket.id, username: name, avatarId: 'avatar_01.png', avatarFileName: 'avatar_01.png' };
+        const u = { id: uid || 'user_' + socket.id, username: name, avatarId: avatarId, avatarFileName: avatarFileName };
         socket.data.user = u;
         done(u);
       });
@@ -606,8 +647,8 @@ function authenticate(socket, done) {
   const user = {
     id: resolvedUid,
     username: name || 'Player_' + resolvedUid.substring(0, 4),
-    avatarId: 'avatar_01.png',
-    avatarFileName: 'avatar_01.png',
+    avatarId: avatarId,
+    avatarFileName: avatarFileName,
   };
   socket.data.user = user;
   done(user);

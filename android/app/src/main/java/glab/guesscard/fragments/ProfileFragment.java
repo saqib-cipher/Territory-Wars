@@ -40,6 +40,8 @@ import glab.guesscard.viewmodel.ViewModelFactory;
 public class ProfileFragment extends Fragment {
 
     private ProfileViewModel viewModel;
+    private com.google.firebase.database.ValueEventListener friendRequestsLiveListener;
+    private String liveListenerUid;
 
     @Nullable
     @Override
@@ -125,7 +127,55 @@ public class ProfileFragment extends Fragment {
                 });
             });
             loadPendingInvites(getView(), container);
+            attachFriendRequestsLiveListener(container, getView());
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        detachFriendRequestsLiveListener();
+    }
+
+    /** Live-updates the Friends button dot badge + count when a friend request arrives. */
+    private void attachFriendRequestsLiveListener(GameContainer container, View view) {
+        detachFriendRequestsLiveListener();
+        String uid = container.getPreferences().getUserId();
+        if (uid == null || uid.isEmpty()) return;
+        liveListenerUid = uid;
+        friendRequestsLiveListener = new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                if (getActivity() == null || !isAdded()) return;
+                int count = (int) snapshot.getChildrenCount();
+                MaterialButton btnFriends = view.findViewById(R.id.btnViewFriends);
+                View dotBadge = view.findViewById(R.id.friendsDotBadge);
+                if (btnFriends != null) {
+                    btnFriends.setText(count > 0 ? "Friends 👥 (" + count + ")" : "Friends 👥");
+                }
+                if (dotBadge != null) {
+                    dotBadge.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+                }
+            }
+            @Override
+            public void onCancelled(@androidx.annotation.NonNull com.google.firebase.database.DatabaseError error) {}
+        };
+        container.getFirebaseManager().getDatabaseRef()
+                .child("users").child(uid).child("friendRequests")
+                .addValueEventListener(friendRequestsLiveListener);
+    }
+
+    private void detachFriendRequestsLiveListener() {
+        if (liveListenerUid != null && friendRequestsLiveListener != null
+                && glab.guesscard.GuessCardApp.from(requireContext()) != null) {
+            try {
+                glab.guesscard.GuessCardApp.from(requireContext()).getFirebaseManager().getDatabaseRef()
+                        .child("users").child(liveListenerUid).child("friendRequests")
+                        .removeEventListener(friendRequestsLiveListener);
+            } catch (Exception ignored) {}
+        }
+        friendRequestsLiveListener = null;
+        liveListenerUid = null;
     }
 
     private void loadPendingInvites(View view, GameContainer container) {
@@ -140,9 +190,13 @@ public class ProfileFragment extends Fragment {
                 if (getActivity() == null || !isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
                     MaterialButton btnFriends = view.findViewById(R.id.btnViewFriends);
+                    View dotBadge = view.findViewById(R.id.friendsDotBadge);
                     int reqCount = (requests != null) ? requests.size() : 0;
                     if (btnFriends != null) {
                         btnFriends.setText(reqCount > 0 ? "Friends 👥 (" + reqCount + ")" : "Friends 👥");
+                    }
+                    if (dotBadge != null) {
+                        dotBadge.setVisibility(reqCount > 0 ? View.VISIBLE : View.GONE);
                     }
 
                     boolean hasPending = (invites != null && !invites.isEmpty()) || (requests != null && !requests.isEmpty());
@@ -274,14 +328,25 @@ public class ProfileFragment extends Fragment {
                 glab.guesscard.utils.AvatarManager.getInstance().loadAvatarIntoImageView(requireContext(), vh.ivAvatar, avatar);
 
                 vh.btnAccept.setOnClickListener(v -> {
-                    container.getFirebaseManager().addFriend(myUid, senderUid);
-                    Toast.makeText(requireContext(), "Accepted friend request!", Toast.LENGTH_SHORT).show();
-                    if (getView() != null) loadPendingInvites(getView(), container);
+                    glab.guesscard.firebase.FriendshipManager.acceptFriendRequest(requireContext(), myUid, senderUid, name, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (getView() != null) loadPendingInvites(getView(), container);
+                        }
+
+                        @Override public void onError(String message) {}
+                    });
                 });
 
                 vh.btnDecline.setOnClickListener(v -> {
-                    container.getFirebaseManager().declineFriendRequest(myUid, senderUid);
-                    if (getView() != null) loadPendingInvites(getView(), container);
+                    glab.guesscard.firebase.FriendshipManager.declineFriendRequest(requireContext(), myUid, senderUid, new glab.guesscard.firebase.FriendshipManager.FriendshipActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (getView() != null) loadPendingInvites(getView(), container);
+                        }
+
+                        @Override public void onError(String message) {}
+                    });
                 });
             }
         }

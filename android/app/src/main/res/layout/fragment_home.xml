@@ -174,7 +174,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Live Game Rooms 🔴"
+                    android:text="Game Rooms 🎮"
                     android:textColor="#38BDF8"
                     android:textSize="15sp"
                     android:textAllCaps="true"
@@ -185,7 +185,7 @@
                     android:id="@+id/tvLiveRoomsCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 Active"
+                    android:text="0 Rooms"
                     android:textColor="#94A3B8"
                     android:textSize="12sp"
                     android:background="#1E293B"
@@ -194,6 +194,78 @@
                     android:paddingTop="3dp"
                     android:paddingBottom="3dp" />
 
+            </LinearLayout>
+
+            <!-- Network Filter Tabs: All | Online | Bluetooth Mesh -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <glab.guesscard.ModernFButton
+                        android:id="@+id/btnFilterAllRooms"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="All Rooms"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <glab.guesscard.ModernFButton
+                        android:id="@+id/btnFilterOnlineRooms"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="🌐 Online (Cloud)"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <glab.guesscard.ModernFButton
+                        android:id="@+id/btnFilterBluetoothRooms"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="📡 Bluetooth Mesh"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- Bluetooth Scanning Indicator -->
+            <LinearLayout
+                android:id="@+id/layoutBluetoothScanning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="8dp"
+                android:background="#1E1B4B"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:indeterminate="true"
+                    android:indeterminateTint="#A855F7" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scanning for nearby Bluetooth Mesh rooms..."
+                    android:textColor="#C084FC"
+                    android:textSize="11sp"
+                    android:layout_marginStart="8dp" />
             </LinearLayout>
 
             <!-- Empty State for Active Rooms -->

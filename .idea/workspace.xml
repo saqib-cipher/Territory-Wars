@@ -15,12 +15,32 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/drawable/guess_card_ui_background.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/drawable/nav_icon_selector.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_auth.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_custom_mode.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_edit_profile.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
@@ -35,7 +55,17 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_main.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/activity_splash.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
@@ -50,7 +80,17 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_lobby_friends_invite.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_match_abandoned.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/dialog_match_details.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
@@ -100,7 +140,32 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_friend.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_friend_request.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_friend_request_manage.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_friend_user.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_game_player.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_friend_invite.xml">
         <config>
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
@@ -135,6 +200,16 @@
           <theme>@style/Theme.TerritoryWars</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml">
+        <config>
+          <theme>@style/Theme.TerritoryWars</theme>
+        </config>
+      </layout>
     </layouts>
   </component>
   <component name="AutoImportSettings">
@@ -142,27 +217,59 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bc9ac8ad-8eb2-40c2-8189-90eb9bfd6330" name="Changes" comment="icon ne jo">
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/.artifacts/80005a88-606d-4e16-90c2-7498bc87247c/implementation_plan.artifact.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/values/attrs_modern_fbutton.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/guess_card_ui_background.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable/guesscardlogo.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/ModernFButton.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/ModernFButton.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/GuessCardApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/GuessCardApp.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/BaseActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/BaseActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/FriendsActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/GameActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/LobbyActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/MainActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/MainActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/PublicProfileActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/activities/WinnerActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/FriendAdapter.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/adapters/LobbyPlayerAdapter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/di/GameContainer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/firebase/FirebaseManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/FriendsFragment.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/GameFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/HomeFragment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/fragments/ProfileFragment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/notifications/GlobalInvitationManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/notifications/GlobalInvitationManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/socket/GameSocketListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/viewmodel/FriendsViewModel.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/viewmodel/ViewModelFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/java/glab/guesscard/viewmodel/ViewModelFactory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_auth.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_auth.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_friends.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_lobby.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_public_profile.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_splash.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/activity_splash.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_friends.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_game.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_game.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_home.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/fragment_profile.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_chat.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/attrs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_active_room.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_active_room.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_friend.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_friend.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_friend_user.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_game_player.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_game_player.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/layout/item_lobby_player.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/navigation/nav_graph.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/navigation/nav_graph.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/values/strings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database.rules.json" beforeDir="false" afterPath="$PROJECT_DIR$/database.rules.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server/src/socket/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/socket/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -173,7 +280,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=X8HQEYFIUSLZS4O7]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -305,11 +412,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\res" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\java\glab\guesscard" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\res\values" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets\sounds" />
       <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main\assets" />
-      <recent name="C:\Users\sddrk\Documents\Projects\Territory Wars\android\app\src\main" />
     </key>
   </component>
   <component name="RunManager" selected="Android App.app">
@@ -861,12 +968,12 @@
         </entry>
         <entry key="glab.guesscard">
           <value>
-            <CheckInfo lastCheckTimestamp="1787077784720" />
+            <CheckInfo lastCheckTimestamp="1788339878220" />
           </value>
         </entry>
         <entry key="glab.guesscard.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1787077784721" />
+            <CheckInfo lastCheckTimestamp="1788339878220" />
           </value>
         </entry>
       </map>
