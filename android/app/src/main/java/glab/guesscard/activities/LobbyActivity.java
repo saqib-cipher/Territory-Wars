@@ -231,7 +231,7 @@ public class LobbyActivity extends BaseActivity implements GameSocketListener {
             currentRoomCode = codeExtra != null ? codeExtra : "BT-MESH";
             if (roomCodeText != null) roomCodeText.setText(currentRoomCode);
             if (roomNameText != null && currentRoomName != null) roomNameText.setText(currentRoomName);
-            if (roomModeText != null && mode != null) roomModeText.setText("Mode: " + mode + " 📡 BLUETOOTH");
+            if (roomModeText != null && mode != null) roomModeText.setText("Mode: " + mode);
 
             if (bluetoothMeshManager != null && bluetoothMeshManager.isHosting()) {
                 room = bluetoothMeshManager.getCurrentRoomInfo();

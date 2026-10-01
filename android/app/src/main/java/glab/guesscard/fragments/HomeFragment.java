@@ -35,17 +35,12 @@ import glab.guesscard.network.PreferenceManager;
  */
 public class HomeFragment extends Fragment {
 
-    private final java.util.List<java.util.Map<String, Object>> firebaseRoomsList = new java.util.ArrayList<>();
     private final java.util.List<java.util.Map<String, Object>> bluetoothRoomsList = new java.util.ArrayList<>();
-    private String currentNetworkFilter = "ALL"; // "ALL", "ONLINE", "BLUETOOTH"
 
     private RecyclerView rvActiveRooms;
     private View emptyView;
     private TextView tvLiveRoomsCount;
     private View layoutBluetoothScanning;
-    private ModernFButton btnFilterAll;
-    private ModernFButton btnFilterOnline;
-    private ModernFButton btnFilterBluetooth;
 
     @Nullable
     @Override
@@ -86,12 +81,12 @@ public class HomeFragment extends Fragment {
 
         ModernFButton btnCreateRoom = view.findViewById(R.id.btnHomeCreateRoom);
         if (btnCreateRoom != null) {
-            btnCreateRoom.setOnClickListener(v -> showCreateRoomOptionDialog());
+            btnCreateRoom.setOnClickListener(v -> showCreateRoomDialog());
         }
 
         ModernFButton btnEmptyCreateRoom = view.findViewById(R.id.btnEmptyCreateRoom);
         if (btnEmptyCreateRoom != null) {
-            btnEmptyCreateRoom.setOnClickListener(v -> showCreateRoomOptionDialog());
+            btnEmptyCreateRoom.setOnClickListener(v -> showCreateRoomDialog());
         }
 
         // Offline Practice Button
@@ -103,57 +98,8 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        setupFilterButtons(view);
-        setupRoomRecyclerView(view);
-        listenToFirebaseActiveRooms();
-    }
-
-    private void setupFilterButtons(View view) {
-        btnFilterAll = view.findViewById(R.id.btnFilterAllRooms);
-        btnFilterOnline = view.findViewById(R.id.btnFilterOnlineRooms);
-        btnFilterBluetooth = view.findViewById(R.id.btnFilterBluetoothRooms);
         layoutBluetoothScanning = view.findViewById(R.id.layoutBluetoothScanning);
-
-        updateFilterButtonStyles();
-
-        if (btnFilterAll != null) {
-            btnFilterAll.setOnClickListener(v -> {
-                currentNetworkFilter = "ALL";
-                updateFilterButtonStyles();
-                refreshCombinedRoomsList();
-            });
-        }
-
-        if (btnFilterOnline != null) {
-            btnFilterOnline.setOnClickListener(v -> {
-                currentNetworkFilter = "ONLINE";
-                updateFilterButtonStyles();
-                refreshCombinedRoomsList();
-            });
-        }
-
-        if (btnFilterBluetooth != null) {
-            btnFilterBluetooth.setOnClickListener(v -> {
-                currentNetworkFilter = "BLUETOOTH";
-                updateFilterButtonStyles();
-                refreshCombinedRoomsList();
-            });
-        }
-    }
-
-    private void updateFilterButtonStyles() {
-        int activeColor = android.graphics.Color.parseColor("#3B82F6");
-        int inactiveColor = android.graphics.Color.parseColor("#1E293B");
-
-        if (btnFilterAll != null) {
-            btnFilterAll.setButtonColor("ALL".equals(currentNetworkFilter) ? activeColor : inactiveColor);
-        }
-        if (btnFilterOnline != null) {
-            btnFilterOnline.setButtonColor("ONLINE".equals(currentNetworkFilter) ? activeColor : inactiveColor);
-        }
-        if (btnFilterBluetooth != null) {
-            btnFilterBluetooth.setButtonColor("BLUETOOTH".equals(currentNetworkFilter) ? android.graphics.Color.parseColor("#8B5CF6") : inactiveColor);
-        }
+        setupRoomRecyclerView(view);
     }
 
     @Override
@@ -197,36 +143,55 @@ public class HomeFragment extends Fragment {
     }
 
     private void performQuickMatch() {
-        Context context = getContext();
-        if (context == null) return;
-        Toast.makeText(context, "Scanning for open public rooms...", Toast.LENGTH_SHORT).show();
-        glab.guesscard.GuessCardApp.from(context).getFirebaseManager().findOpenRoomByMode(null, (roomId, roomCode, mode) -> {
-            if (!isAdded()) return;
-            androidx.fragment.app.FragmentActivity activity = getActivity();
-            if (activity == null) return;
-            activity.runOnUiThread(() -> {
-                if (!isAdded() || getContext() == null) return;
-                if (roomId != null && roomCode != null && !roomCode.isEmpty()) {
-                    Toast.makeText(requireContext(), "Joining public room...", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                    intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                    intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
-                    if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(requireContext(), "No open public room with available slots found. Tap 'Create Room' to host one!", Toast.LENGTH_LONG).show();
-                }
+        if (!glab.guesscard.bluetooth.BluetoothPermissionHelper.hasBluetoothPermissions(requireContext())) {
+            glab.guesscard.bluetooth.BluetoothPermissionHelper.showPermissionExplanationDialog(getActivity(), () -> {
+                glab.guesscard.bluetooth.BluetoothPermissionHelper.requestBluetoothPermissions(getActivity(), glab.guesscard.bluetooth.BluetoothPermissionHelper.REQ_BLUETOOTH_PERMISSIONS);
             });
-        });
+            return;
+        }
+
+        for (java.util.Map<String, Object> room : bluetoothRoomsList) {
+            boolean isFull = Boolean.TRUE.equals(room.get("isFull"));
+            if (!isFull) {
+                joinBluetoothMeshRoom(room);
+                return;
+            }
+        }
+
+        Toast.makeText(requireContext(), "No open nearby room found. Hosting a new room...", Toast.LENGTH_SHORT).show();
+        createBluetoothHostRoom(GameMode.ANIMALS, "Quick Match");
+    }
+
+    private void joinBluetoothMeshRoom(java.util.Map<String, Object> r) {
+        Context ctx = getContext();
+        if (ctx == null || r == null) return;
+        if (!glab.guesscard.bluetooth.BluetoothPermissionHelper.hasBluetoothPermissions(ctx)) {
+            glab.guesscard.bluetooth.BluetoothPermissionHelper.requestBluetoothPermissions(getActivity(), glab.guesscard.bluetooth.BluetoothPermissionHelper.REQ_BLUETOOTH_PERMISSIONS);
+            return;
+        }
+        String deviceAddress = String.valueOf(r.getOrDefault("deviceAddress", ""));
+        String code = String.valueOf(r.getOrDefault("code", ""));
+        String mode = String.valueOf(r.getOrDefault("mode", "ANIMALS"));
+        String name = String.valueOf(r.getOrDefault("name", "ROOM"));
+
+        glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = glab.guesscard.GuessCardApp.from(ctx).getBluetoothMeshManager();
+        bmMgr.joinBluetoothRoom(deviceAddress, code, mode);
+
+        Intent intent = new Intent(ctx, LobbyActivity.class);
+        intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, "bt_" + code);
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, code);
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, name);
+        intent.putExtra("extra_is_bluetooth", true);
+        ctx.startActivity(intent);
     }
 
     /**
-     * Create Room Option Selection Dialog:
-     * - Network Type: Online (Cloud/Internet) vs Bluetooth Mesh (Offline/Local P2P)
+     * Create Room Dialog:
      * - Game Mode: Animals, Food, Countries, Celebrities
      * - Room Name Input
      */
-    private void showCreateRoomOptionDialog() {
+    private void showCreateRoomDialog() {
         String[] modes = new String[]{"ANIMALS 🐾", "FOOD & DISHES 🍔", "COUNTRIES 🌍", "CELEBRITIES 🎬"};
         final GameMode[] modeEnums = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
 
@@ -244,29 +209,6 @@ public class HomeFragment extends Fragment {
         layout.addView(etName, new android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        // ── Network Mode Selection ──
-        android.widget.TextView tvNetworkLabel = new android.widget.TextView(requireContext());
-        tvNetworkLabel.setText("Select Network Connection");
-        tvNetworkLabel.setTextColor(0xFF38BDF8);
-        tvNetworkLabel.setTextSize(13);
-        tvNetworkLabel.setPadding(0, pad / 2, 0, pad / 4);
-        layout.addView(tvNetworkLabel);
-
-        final android.widget.RadioGroup rgNetwork = new android.widget.RadioGroup(requireContext());
-        android.widget.RadioButton rbOnline = new android.widget.RadioButton(requireContext());
-        rbOnline.setText("🌐 Online Room (Internet Required)");
-        rbOnline.setTextColor(0xFFFFFFFF);
-        rbOnline.setId(android.view.View.generateViewId());
-        rbOnline.setChecked(true);
-        rgNetwork.addView(rbOnline);
-
-        android.widget.RadioButton rbBluetooth = new android.widget.RadioButton(requireContext());
-        rbBluetooth.setText("📡 Bluetooth Mesh (Offline • No Internet)");
-        rbBluetooth.setTextColor(0xFFC084FC);
-        rbBluetooth.setId(android.view.View.generateViewId());
-        rgNetwork.addView(rbBluetooth);
-        layout.addView(rgNetwork);
 
         // ── Game Mode Selection ──
         android.widget.TextView tvModeLabel = new android.widget.TextView(requireContext());
@@ -302,40 +244,10 @@ public class HomeFragment extends Fragment {
                 .setView(layout)
                 .setPositiveButton("Create", (dialog, which) -> {
                     String roomName = etName.getText().toString().trim();
-                    boolean isBluetooth = rgNetwork.getCheckedRadioButtonId() == rbBluetooth.getId();
-                    if (isBluetooth) {
-                        createBluetoothHostRoom(modeEnums[selectedModeIndex[0]], roomName);
-                    } else {
-                        createOnlineHostRoom(modeEnums[selectedModeIndex[0]], roomName);
-                    }
+                    createBluetoothHostRoom(modeEnums[selectedModeIndex[0]], roomName);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-    }
-
-    private void createOnlineHostRoom(GameMode mode, String roomName) {
-        Context context = getContext();
-        if (context == null) return;
-        String uid = glab.guesscard.GuessCardApp.from(context).getPreferences().getUserId();
-        String name = glab.guesscard.GuessCardApp.from(context).getPreferences().getUsername();
-        String avatarFile = glab.guesscard.GuessCardApp.from(context).getPreferences().getAvatarFileName();
-
-        glab.guesscard.GuessCardApp.from(context).getFirebaseManager()
-                .getOrCreateHostRoom(uid, name, avatarFile, roomName, mode.name(), (roomId, roomCode, roomMode) -> {
-                    if (!isAdded()) return;
-                    androidx.fragment.app.FragmentActivity activity = getActivity();
-                    if (activity == null) return;
-                    activity.runOnUiThread(() -> {
-                        if (!isAdded() || getContext() == null) return;
-                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, roomName);
-                        intent.putExtra("extra_is_bluetooth", false);
-                        startActivity(intent);
-                    });
-                });
     }
 
     private void createBluetoothHostRoom(GameMode mode, String roomName) {
@@ -378,112 +290,12 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void listenToFirebaseActiveRooms() {
-        glab.guesscard.GuessCardApp.from(requireContext()).getFirebaseManager().getDatabaseRef().child("rooms")
-                .addValueEventListener(new com.google.firebase.database.ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
-                        if (!isAdded() || getContext() == null) return;
-                        firebaseRoomsList.clear();
-
-                        for (com.google.firebase.database.DataSnapshot child : snapshot.getChildren()) {
-                            String rId = child.getKey();
-                            String code = child.child("code").getValue(String.class);
-                            String roomName = child.child("name").getValue(String.class);
-                            String mode = child.child("mode").getValue(String.class);
-                            String hostUid = child.child("hostUid").getValue(String.class);
-                            String status = child.child("status").getValue(String.class);
-                            String hostName = child.child("hostName").getValue(String.class);
-                            String hostAvatar = child.child("hostAvatar").getValue(String.class);
-
-                            long pCount = child.child("players").getChildrenCount();
-                            if (pCount == 0) {
-                                pCount = 1;
-                            }
-
-                            if (hostName == null || hostName.isEmpty()) {
-                                hostName = "Host";
-                                if (child.child("players").exists()) {
-                                    for (com.google.firebase.database.DataSnapshot p : child.child("players").getChildren()) {
-                                        String n = p.child("displayName").getValue(String.class);
-                                        String a = p.child("avatarFileName").getValue(String.class);
-                                        if (n != null && !n.isEmpty()) {
-                                            hostName = n;
-                                            if (a != null && (hostAvatar == null || hostAvatar.isEmpty())) {
-                                                hostAvatar = a;
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (hostAvatar == null || hostAvatar.isEmpty()) {
-                                hostAvatar = "avatar_01.png";
-                            }
-
-                            StringBuilder joined = new StringBuilder();
-                            int shown = 0;
-                            if (child.child("players").exists()) {
-                                for (com.google.firebase.database.DataSnapshot p : child.child("players").getChildren()) {
-                                    if (shown >= 3) break;
-                                    String pn = p.child("displayName").getValue(String.class);
-                                    if (pn != null && !pn.isEmpty()) {
-                                        if (joined.length() > 0) joined.append(", ");
-                                        joined.append(pn);
-                                        shown++;
-                                    }
-                                }
-                            }
-                            if (pCount > shown) joined.append(" +").append(pCount - shown).append(" more");
-
-                            java.util.Map<String, Object> roomMap = new java.util.HashMap<>();
-                            roomMap.put("roomId", rId);
-                            roomMap.put("name", (roomName != null && !roomName.trim().isEmpty()) ? roomName.trim() : ((mode != null ? mode : "ANIMALS") + " ROOM"));
-                            roomMap.put("code", code != null && !code.isEmpty() ? code : rId);
-                            roomMap.put("mode", mode != null ? mode : "ANIMALS");
-                            roomMap.put("hostUid", hostUid != null ? hostUid : "");
-                            roomMap.put("hostName", hostName);
-                            roomMap.put("hostAvatar", hostAvatar);
-                            roomMap.put("playersCount", pCount);
-                            roomMap.put("playersNames", joined.toString());
-                            roomMap.put("status", status != null ? status : "WAITING");
-
-                            boolean isFull = pCount >= 5 || "IN_PROGRESS".equalsIgnoreCase(status) || "PLAYING".equalsIgnoreCase(status) || "FINISHED".equalsIgnoreCase(status);
-                            roomMap.put("isFull", isFull);
-                            roomMap.put("isBluetoothMesh", false);
-
-                            firebaseRoomsList.add(roomMap);
-                        }
-
-                        refreshCombinedRoomsList();
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
-                });
-    }
-
     private void refreshCombinedRoomsList() {
         if (!isAdded() || getContext() == null) return;
-        java.util.List<java.util.Map<String, Object>> displayedRooms = new java.util.ArrayList<>();
-
-        if ("ALL".equals(currentNetworkFilter)) {
-            displayedRooms.addAll(bluetoothRoomsList);
-            displayedRooms.addAll(firebaseRoomsList);
-        } else if ("ONLINE".equals(currentNetworkFilter)) {
-            displayedRooms.addAll(firebaseRoomsList);
-        } else if ("BLUETOOTH".equals(currentNetworkFilter)) {
-            displayedRooms.addAll(bluetoothRoomsList);
-        }
+        java.util.List<java.util.Map<String, Object>> displayedRooms = new java.util.ArrayList<>(bluetoothRoomsList);
 
         String myUid = glab.guesscard.GuessCardApp.from(getContext()).getPreferences().getUserId();
         java.util.Collections.sort(displayedRooms, (r1, r2) -> {
-            boolean isBt1 = Boolean.TRUE.equals(r1.get("isBluetoothMesh"));
-            boolean isBt2 = Boolean.TRUE.equals(r2.get("isBluetoothMesh"));
-            if (isBt1 != isBt2) {
-                return isBt1 ? -1 : 1; // Nearby Bluetooth rooms at top
-            }
-
             boolean isHost1 = myUid != null && myUid.equals(r1.get("hostUid"));
             boolean isHost2 = myUid != null && myUid.equals(r2.get("hostUid"));
             if (isHost1 != isHost2) {
@@ -591,35 +403,7 @@ public class HomeFragment extends Fragment {
                 } else {
                     holder.btnJoin.setButtonColor(android.graphics.Color.parseColor("#3B82F6"));
                 }
-                holder.btnJoin.setOnClickListener(v -> {
-                    if (isBluetooth) {
-                        if (!glab.guesscard.bluetooth.BluetoothPermissionHelper.hasBluetoothPermissions(ctx)) {
-                            glab.guesscard.bluetooth.BluetoothPermissionHelper.requestBluetoothPermissions(getActivity(), glab.guesscard.bluetooth.BluetoothPermissionHelper.REQ_BLUETOOTH_PERMISSIONS);
-                            return;
-                        }
-                        glab.guesscard.bluetooth.BluetoothMeshManager bmMgr = glab.guesscard.GuessCardApp.from(ctx).getBluetoothMeshManager();
-                        bmMgr.joinBluetoothRoom(deviceAddress, code, mode);
-
-                        Intent intent = new Intent(ctx, LobbyActivity.class);
-                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, "bt_" + code);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, code);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, name);
-                        intent.putExtra("extra_is_bluetooth", true);
-                        ctx.startActivity(intent);
-                    } else {
-                        Intent intent = new Intent(ctx, LobbyActivity.class);
-                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
-                        String roomId = String.valueOf(r.getOrDefault("roomId", ""));
-                        if (roomId != null && !roomId.isEmpty()) {
-                            intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                        }
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, code);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, name);
-                        intent.putExtra("extra_is_bluetooth", false);
-                        ctx.startActivity(intent);
-                    }
-                });
+                holder.btnJoin.setOnClickListener(v -> joinBluetoothMeshRoom(r));
             }
         }
 

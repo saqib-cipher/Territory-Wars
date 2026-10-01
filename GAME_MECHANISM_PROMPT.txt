@@ -1,0 +1,155 @@
+================================================================================
+          GUESS THE CARD / TERRITORY WARS — COMPLETE GAME MECHANISM SPECIFICATION
+================================================================================
+
+1. OVERVIEW & CORE GAME CONCEPT
+--------------------------------------------------------------------------------
+"Guess The Card" is a multiplayer social deduction and card guessing party game
+designed for 2 to 5 players. The game operates 100% offline via a decentralized local
+Bluetooth Mesh network (no Wi-Fi, mobile data, or external cloud servers required).
+
+In each round:
+- One player is designated as the "ANSWERER" (holding the secret card).
+- All other players are "GUESSERS".
+- Guessers take turns asking strategic deductive questions (e.g., "Does it fly?",
+  "Is it sweet?", "Is it found in Asia?").
+- The Answerer responds in real-time with one of three official answers:
+    [ YES 👍 ]   |   [ MAYBE 🤷 ]   |   [ NO 👎 ]
+- Guessers can submit a direct guess at any point during their turn.
+- A correct guess instantly awards 100 base points plus bonus points for all
+  remaining questions unused in that round.
+- The game rotates Answerer roles each round so every player gets an opportunity to
+  guard a secret card. At the conclusion of all rounds, final standings are computed
+  and a podium winner is crowned.
+
+
+2. GAME MODES & CARD DECKS
+--------------------------------------------------------------------------------
+The game supports 5 distinct categories, each curated with hundreds of tailored cards:
+1. ANIMALS 🐾: Mammals, birds, reptiles, aquatic life, insects, prehistoric animals.
+2. FOOD & DISHES 🍔: International cuisines, desserts, fruits, fast food, beverages.
+3. COUNTRIES 🌍: Sovereign nations, island states, historical territories, capitals.
+4. CELEBRITIES 🎬: Actors, athletes, historical figures, scientists, musicians.
+5. CUSTOM MODE 🎨: Player-created custom decks with customizable card items and clues.
+
+
+3. OFFLINE BLUETOOTH MESH P2P ARCHITECTURE
+--------------------------------------------------------------------------------
+The multiplayer system utilizes a high-throughput, low-latency Bluetooth Mesh Star
+topology:
+
+A. Zero-Pairing BLE Discovery:
+   - Host device broadcasts a BLE (Bluetooth Low Energy) advertisement with Service UUID:
+     e0cbf06c-cd8b-4647-bb8a-263b43f0f974.
+   - The BLE payload is encoded in a compact 20-byte string format:
+     "GTC_<code4>_<modeChar>_<pCount>_<hostName>"
+     Example: "GTC_9482_A_3_Alex" (Code: 9482, Mode: Animals, 3 Players, Host: Alex).
+   - Nearby devices running the BLE scanner detect this advertisement within milliseconds
+     and automatically populate the "Nearby Game Rooms" list with a live pulsing radar.
+
+B. Multi-Peer RFCOMM Socket Coordination:
+   - When a client taps "JOIN", an RFCOMM Bluetooth Socket channel is opened directly
+     to the Host device.
+   - Up to 4 client peer threads connect simultaneously to 1 coordinator Host.
+   - The Host acts as the decentralized local server, keeping authoritative state:
+     - Maintains connected player list, names, and avatars.
+     - Maintains ready states.
+     - Relays all incoming JSON packets to all other peers with sub-10ms latency.
+
+
+4. PACKET PROTOCOL & NETWORK EVENTS
+--------------------------------------------------------------------------------
+All peer communication uses newline-delimited JSON packets transmitted over RFCOMM:
+
+1. LOBBY_JOIN:
+   Sent by Client upon connecting:
+   {"type": "LOBBY_JOIN", "uid": "peer_123", "name": "Sarah", "avatar": "avatar_03.png"}
+
+2. LOBBY_UPDATE:
+   Broadcast by Host whenever players join/leave or toggle ready:
+   {"type": "LOBBY_UPDATE", "room": {"roomId": "bt_9482", "code": "9482", "players": [...]}}
+
+3. TOGGLE_READY:
+   Sent by Client when tapping "I'm Ready / Cancel Ready":
+   {"type": "TOGGLE_READY", "uid": "peer_123", "isReady": true}
+
+4. GAME_START:
+   Broadcast by Host when starting match:
+   {"type": "GAME_START", "mode": "ANIMALS", "durationMs": 60000, "answererUid": "host_uid", "secretCard": "LION"}
+
+5. QUESTION_ASKED:
+   Sent by Guesser:
+   {"type": "QUESTION_ASKED", "question": "Does it have four legs?", "askerName": "Sarah"}
+
+6. ANSWER_GIVEN:
+   Sent by Answerer:
+   {"type": "ANSWER_GIVEN", "question": "Does it have four legs?", "answer": "YES 👍", "answererName": "Alex"}
+
+7. SUBMIT_GUESS:
+   Sent by Guesser when submitting card name:
+   {"type": "SUBMIT_GUESS", "guess": "LION", "guessedBy": "Sarah", "isCorrect": true, "scoreAwarded": 118, "cardAnswer": "LION"}
+
+8. TURN_STARTED:
+   Broadcast when advancing to next round or rotating Answerer:
+   {"type": "TURN_STARTED", "nextTurnPlayerId": "peer_123", "currentRound": 2, "secretCard": "EAGLE"}
+
+
+5. STEP-BY-STEP GAMEPLAY WORKFLOW
+--------------------------------------------------------------------------------
+Step 1: Hosting or Joining a Room
+- Host taps "Host Game Room 👑" or "Create Room" on the Home or Play tab.
+- Selects Category (e.g. ANIMALS) and optional Room Name (e.g. "Game Night").
+- Host enters Lobby; BLE advertising and RFCOMM server begin immediately.
+- Client devices within 10-30 meters see the room appear under "Nearby Game Rooms"
+  and tap "JOIN 📡" or enter the 6-digit room code.
+
+Step 2: Lobby Assembly & Synchronization
+- All joined players appear in the dynamic lobby player list with custom avatars.
+- Clients tap "I'm Ready 🟢".
+- Once all non-host players are ready, the Host's button activates: "START MATCH 🚀".
+
+Step 3: Round Start & Role Assignment
+- Total rounds = Total players in room (e.g., 4 players = 4 rounds).
+- Host picks a random secret card for the designated Answerer from the category deck.
+- The Answerer sees the full Card View with word and category.
+- Guessers see the card face-down with question marks and quick-question chips.
+- 60-second round countdown timer commences on all devices simultaneously.
+
+Step 4: Question & Answer Interaction
+- Any Guesser can tap a Quick Question chip or type a custom question.
+- Asking a question decrements the shared "Questions Left" counter (starts at 20).
+- Deducts 1 point from asker (preventing random question spamming).
+- Question bubble appears in real-time on all screens: "[Sarah] Does it have four legs? -> Waiting..."
+- Answerer's screen displays YES / MAYBE / NO buttons.
+- Answerer taps [YES 👍] -> Bubble instantly updates to "YES 👍" across all screens.
+
+Step 5: Submitting Guesses & Scoring
+- Any Guesser can tap "GUESS THE CARD 🎯" and enter a name (e.g., "Lion").
+- Correct Guess:
+  - Victory sound & 3D green pulse animation triggers.
+  - Guesser receives: 100 Base Points + (Remaining Questions count) Bonus Points.
+  - Secret card reveals to all players.
+  - After 3 seconds, advances to Next Round.
+- Wrong Guess:
+  - Error vibration & red shake animation triggers.
+  - 0 points awarded; question history shows "🎯 GUESS: Tiger -> WRONG".
+
+Step 6: Round Rotation & Match Conclusion
+- When timer expires or a correct guess is made:
+  - If more rounds remain: Answerer role rotates clockwise to the next player,
+    new secret card is chosen, timer resets to 60s, questions reset to 20.
+  - If all rounds completed: Final standings screen (WinnerActivity) displays the
+    podium rankings, total scores, and avatar cards.
+- Tapping "Play Again" seamlessly resets the lobby state and returns all players
+  back to the Bluetooth Mesh lobby for another match.
+
+
+6. UI & DESIGN SYSTEM SPECIFICATIONS
+--------------------------------------------------------------------------------
+- Built strictly with Material 3 Expressive Design and Android standard components.
+- Dark Glassmorphism aesthetic: #0F172A (Deep Slate), #1E293B (Card Slate), #38BDF8 (Cyan Accent), #8B5CF6 (Mesh Violet).
+- Smooth 60 FPS spring animations for card flipping, guess reveals, and dialog entries.
+- Haptics: Distinct haptic feedback patterns for question clicks, correct guesses, and incorrect attempts.
+- Offline Independence: All network backend flows are hidden from the UI for a unified,
+  instant, offline-first experience.
+================================================================================

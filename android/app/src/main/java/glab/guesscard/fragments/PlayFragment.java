@@ -1,19 +1,17 @@
 package glab.guesscard.fragments;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Random;
 
@@ -22,6 +20,8 @@ import glab.guesscard.ModernFButton;
 import glab.guesscard.R;
 import glab.guesscard.activities.GameActivity;
 import glab.guesscard.activities.LobbyActivity;
+import glab.guesscard.bluetooth.BluetoothMeshManager;
+import glab.guesscard.bluetooth.BluetoothPermissionHelper;
 import glab.guesscard.models.GameMode;
 
 public class PlayFragment extends Fragment {
@@ -38,32 +38,24 @@ public class PlayFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        // Guests (anonymous Firebase accounts) can also create/join online rooms.
-        boolean isSignedIn = user != null;
-
-        TextView tvHint = view.findViewById(R.id.tvSignInHint);
-        ModernFButton quickMatch = view.findViewById(R.id.quickMatchButton);
         ModernFButton createRoom = view.findViewById(R.id.createRoomButton);
         ModernFButton btnCustom = view.findViewById(R.id.customModeButton);
         ModernFButton joinRoom = view.findViewById(R.id.joinRoomButton);
         ModernFButton offline = view.findViewById(R.id.offlineButton);
 
-        if (!isSignedIn) {
-            if (tvHint != null) tvHint.setVisibility(View.VISIBLE);
-            lockOnlineButton(quickMatch);
-            lockOnlineButton(createRoom);
-            lockOnlineButton(btnCustom);
-            lockOnlineButton(joinRoom);
-        } else {
-            if (tvHint != null) tvHint.setVisibility(View.GONE);
-            if (quickMatch != null) quickMatch.setOnClickListener(v -> performQuickMatch());
-            if (createRoom != null) createRoom.setOnClickListener(v -> showCreateRoomModeDialog());
-            if (btnCustom != null) btnCustom.setOnClickListener(v -> {
+        if (createRoom != null) {
+            createRoom.setOnClickListener(v -> showCreateRoomModeDialog());
+        }
+
+        if (joinRoom != null) {
+            joinRoom.setOnClickListener(v -> showJoinDialog());
+        }
+
+        if (btnCustom != null) {
+            btnCustom.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), glab.guesscard.activities.CustomModeActivity.class);
                 startActivity(intent);
             });
-            if (joinRoom != null) joinRoom.setOnClickListener(v -> showJoinDialog());
         }
 
         if (offline != null) {
@@ -119,93 +111,52 @@ public class PlayFragment extends Fragment {
         layout.addView(rgModes);
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("Create Room")
+                .setTitle("Host Game Room")
                 .setView(layout)
-                .setPositiveButton("Create", (dialog, which) -> {
+                .setPositiveButton("Host Room", (dialog, which) -> {
                     String roomName = etName.getText().toString().trim();
-                    createHostRoomForMode(modeEnums[selectedModeIndex[0]], roomName);
+                    createBluetoothHostRoom(modeEnums[selectedModeIndex[0]], roomName);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void createHostRoomForMode(GameMode mode, String roomName) {
-        String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
-        String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
-        String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
+    private void createBluetoothHostRoom(GameMode mode, String roomName) {
+        Context context = getContext();
+        if (context == null) return;
 
-        GuessCardApp.from(requireContext()).getFirebaseManager()
-                .getOrCreateHostRoom(uid, name, avatarFile, roomName, mode.name(), (roomId, roomCode, roomMode) -> {
-                    if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() -> {
-                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                        intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, roomName);
-                        startActivity(intent);
-                    });
-                });
-    }
-
-    private void lockOnlineButton(ModernFButton btn) {
-        if (btn == null) return;
-        btn.setEnabled(false);
-        btn.setAlpha(0.4f);
-        btn.setOnClickListener(v ->
-                Toast.makeText(requireContext(), "Sign in to play online", Toast.LENGTH_SHORT).show());
-    }
-
-    private void performQuickMatch() {
-        Toast.makeText(requireContext(), "Scanning for open public rooms...", Toast.LENGTH_SHORT).show();
-        GuessCardApp.from(requireContext()).getFirebaseManager().findOpenRoomByMode(null, (roomId, roomCode, mode) -> {
-            if (getActivity() == null) return;
-            getActivity().runOnUiThread(() -> {
-                if (roomId != null && roomCode != null && !roomCode.isEmpty()) {
-                    Toast.makeText(requireContext(), "Joining public room...", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                    intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                    intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
-                    if (mode != null) intent.putExtra(LobbyActivity.EXTRA_MODE, mode);
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(requireContext(), "No open public room with available slots found. Use 'Create Room' to host a game!", Toast.LENGTH_LONG).show();
-                }
+        if (!BluetoothPermissionHelper.hasBluetoothPermissions(context)) {
+            BluetoothPermissionHelper.showPermissionExplanationDialog(getActivity(), () -> {
+                BluetoothPermissionHelper.requestBluetoothPermissions(getActivity(), BluetoothPermissionHelper.REQ_BLUETOOTH_PERMISSIONS);
             });
-        });
-    }
-
-    private void launchRandomLobby() {
-        GameMode[] modes = new GameMode[]{GameMode.ANIMALS, GameMode.FOOD, GameMode.COUNTRIES, GameMode.CELEBRITIES};
-        GameMode randomMode = modes[new Random().nextInt(modes.length)];
-        String uid = GuessCardApp.from(requireContext()).getPreferences().getUserId();
-        if (uid == null || uid.isEmpty()) {
-            FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
-            if (u != null) uid = u.getUid();
+            return;
         }
-        String name = GuessCardApp.from(requireContext()).getPreferences().getUsername();
-        String avatarFile = GuessCardApp.from(requireContext()).getPreferences().getAvatarFileName();
-        String roomName = (name != null && !name.isEmpty()) ? name + "'s Room" : "My Room";
 
-        GuessCardApp.from(requireContext()).getFirebaseManager()
-                .getOrCreateHostRoom(uid, name, avatarFile, roomName, randomMode.name(), (roomId, roomCode, roomMode) -> {
-                    if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() -> {
-                        Intent intent = new Intent(requireContext(), LobbyActivity.class);
-                        intent.putExtra(LobbyActivity.EXTRA_MODE, randomMode.name());
-                        if (roomId != null) intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, roomId);
-                        if (roomCode != null) intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
-                        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, roomName);
-                        startActivity(intent);
-                    });
-                });
+        if (!BluetoothPermissionHelper.isBluetoothEnabled()) {
+            BluetoothPermissionHelper.promptEnableBluetooth(getActivity());
+            return;
+        }
+
+        String roomCode = String.valueOf(100000 + new Random().nextInt(900000));
+        String finalName = (roomName != null && !roomName.trim().isEmpty()) ? roomName.trim() : (mode.name() + " MESH");
+
+        BluetoothMeshManager bmMgr = GuessCardApp.from(context).getBluetoothMeshManager();
+        bmMgr.startHostRoom(roomCode, finalName, mode.name());
+
+        Intent intent = new Intent(requireContext(), LobbyActivity.class);
+        intent.putExtra(LobbyActivity.EXTRA_MODE, mode.name());
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_ID, "bt_" + roomCode);
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, roomCode);
+        intent.putExtra(LobbyActivity.EXTRA_ROOM_NAME, finalName);
+        intent.putExtra(LobbyActivity.EXTRA_IS_BLUETOOTH, true);
+        startActivity(intent);
     }
 
     private void showJoinDialog() {
         android.widget.EditText input = new android.widget.EditText(requireContext());
         input.setHint("6-digit numeric room code");
         new AlertDialog.Builder(requireContext())
-                .setTitle("Join Room")
+                .setTitle("Join Game Room")
                 .setView(input)
                 .setPositiveButton("Join", (dialog, which) -> {
                     String code = input.getText().toString().trim();
@@ -215,6 +166,7 @@ public class PlayFragment extends Fragment {
                     }
                     Intent intent = new Intent(requireContext(), LobbyActivity.class);
                     intent.putExtra(LobbyActivity.EXTRA_ROOM_CODE, code);
+                    intent.putExtra(LobbyActivity.EXTRA_IS_BLUETOOTH, true);
                     startActivity(intent);
                 })
                 .setNegativeButton("Cancel", null)
